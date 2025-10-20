@@ -416,7 +416,9 @@ def main():
             atteso_last=atteso_last if atteso_last > 0 else None,
             last_ok_class=last_class
         )
-    
+        # Anteprima grafico
+        st.image(chart_img, caption="Produzione ultimi 12 mesi", use_column_width=True)
+
         # 7) Titolo "mese per esteso"
         mesi_it = {"01":"Gennaio","02":"Febbraio","03":"Marzo","04":"Aprile","05":"Maggio","06":"Giugno",
                    "07":"Luglio","08":"Agosto","09":"Settembre","10":"Ottobre","11":"Novembre","12":"Dicembre"}
