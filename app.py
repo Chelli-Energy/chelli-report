@@ -113,7 +113,7 @@ def main():
     # NUOVA SEZIONE: CARICAMENTO EXCEL (12 mesi) + RIEPILOGO PRODUZIONE/MESI
     # =======================================================================
     st.divider()
-    st.header("File Excel 12 mesi — caricamento e lettura")
+    st.subheader("File Excel 12 mesi — caricamento e lettura")
 
     up = st.file_uploader("Carica il file Excel annuale (.xlsx)", type=["xlsx"])
     if up is None:
