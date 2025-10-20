@@ -32,17 +32,16 @@ def check_password():
             st.error("Password errata")
     st.stop()
 
+
 # -------------------------
-# 2) Utility
+# 2) Utility base
 # -------------------------
 ANAGRAFICA_PATH = "schema/anagrafica.csv"
-
 ANAG_COLS = ["denominazione","indirizzo","provincia","potenza_kw","data_installazione"]
 
 def load_anagrafica():
     try:
         df = pd.read_csv(ANAGRAFICA_PATH)
-        # garantisce colonne nell’ordine atteso
         missing = [c for c in ANAG_COLS if c not in df.columns]
         for c in missing: df[c] = ""
         return df[ANAG_COLS]
@@ -53,11 +52,11 @@ def to_download_button(df: pd.DataFrame, filename: str, label: str):
     buf = BytesIO()
     df.to_csv(buf, index=False)
     st.download_button(label, buf.getvalue(), file_name=filename, mime="text/csv")
+
+
 # -------------------------
 # 2bis) Funzioni helper: grafico e PDF
 # -------------------------
-
-# Palette per il grafico
 GREEN_MAIN = "#006633"
 ORANGE = "#F9A825"
 RED = "#C62828"
@@ -67,21 +66,16 @@ TXT_BASE = "#424242"
 GRID = "#DDDDDD"
 
 def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_class="verde"):
-    """Ritorna un ImageReader con il grafico a barre.
-       - month_labels: list di stringhe MM-YYYY
-       - prod_values: list di float (kWh)
-       - atteso_last: float o None (linea standard del mese corrente)
-       - last_ok_class: 'verde' | 'arancione' | 'rosso' per colore ultima barra
-    """
+    """Ritorna bytes PNG del grafico a barre."""
     fig, ax = plt.subplots(figsize=(7.3, 4.3))
     x = np.arange(len(month_labels))
     widths = np.array([0.5]*len(month_labels))
     colors_bars = [GRAY_PRIOR]*len(month_labels)
 
-    # colore ultima barra
     last_color = GREEN_MAIN if last_ok_class=="verde" else (ORANGE if last_ok_class=="arancione" else RED)
-    colors_bars[-1] = last_color
-    widths[-1] = 0.7
+    if len(colors_bars) > 0:
+        colors_bars[-1] = last_color
+        widths[-1] = 0.7
 
     bars = ax.bar(x, prod_values, width=widths, color=colors_bars, edgecolor="none")
     ax.set_ylabel("Produzione (kWh)")
@@ -89,43 +83,27 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     ymax = max(prod_values) if prod_values else 1
     ax.set_ylim(0, ymax*1.2)
 
-    # valori sopra le barre
     for b in bars:
         h = b.get_height()
         ax.text(b.get_x()+b.get_width()/2, h + ymax*0.012, f"{h:.0f}", ha='center', va='bottom', fontsize=8)
 
-    # linea atteso solo per l'ultima barra
-    if atteso_last is not None and len(bars)>0:
+    if atteso_last is not None and len(bars) > 0:
         last_bar = bars[-1]
         bx, bw = last_bar.get_x(), last_bar.get_width()
         ax.hlines(y=atteso_last, xmin=bx, xmax=bx+bw, colors="white", linewidth=1.2, linestyles=(0,(2,2)))
-        # etichetta piccola in nero
         ax.text(bx + bw/2, atteso_last + 10, "valore standard del mese", ha="center", va="bottom",
                 color="black", fontsize=6)
 
-    # Esporta in buffer come PNG
     buf = BytesIO()
     plt.tight_layout()
     fig.savefig(buf, format="PNG", dpi=300)
     plt.close(fig)
     buf.seek(0)
-    return ImageReader(buf)
+    return buf.getvalue()
 
 
 def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_class, chart_img):
-    """Crea PDF A4 con:
-       - logo, titolo "Report produzione fotovoltaica <Mese YYYY>"
-       - anagrafica
-       - grafico
-       - tabella 12 mesi (intestazioni ridotte)
-       - nota + testo dinamico
-    """
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import cm
-    from reportlab.platypus import Table, TableStyle
-    from reportlab.lib import colors
-
+    """Crea PDF A4 completo."""
     c = canvas.Canvas(path_out, pagesize=A4)
     page_w, page_h = A4
     LM, RM, TM, BM = 2*cm, 2*cm, 2*cm, 2*cm
@@ -135,7 +113,7 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
     logo_y = page_h - TM - logo_h + 0.3*cm
     c.drawImage(logo_path, (page_w - logo_w)/2, logo_y, width=logo_w, height=logo_h, preserveAspectRatio=True, mask='auto')
 
-    # Titolo con mese per esteso
+    # Titolo
     c.setFont("Helvetica-Bold", 14)
     c.setFillColor(colors.HexColor(TXT_DARK))
     c.drawCentredString(page_w/2, logo_y - 0.9*cm, f"Report produzione fotovoltaica {title_mmYYYY}")
@@ -159,7 +137,6 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
     hdr = ["Mese","Produzione\nkWh","Consumo\nkWh","Autoconsumo\nkWh","Rete\nimmessa","Rete\nprelevata","Atteso\nkWh","Scost.\n%"]
     data_table = [hdr] + table_rows
     col_widths = [1.6*cm, 1.8*cm, 1.8*cm, 2.0*cm, 1.8*cm, 2.0*cm, 1.8*cm, 1.6*cm]
-
     tbl = Table(data_table, colWidths=col_widths)
     ts = TableStyle([
         ('FONT', (0,0), (-1,0), 'Helvetica-Bold', 6.5),
@@ -172,7 +149,6 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
         ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor(GRID)),
         ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor("#FAFAFA")]),
     ])
-    # highlight ultima riga
     hl = "#E8F5E9" if last_class=="verde" else ("#FFF8E1" if last_class=="arancione" else "#FFEBEE")
     ts.add('BACKGROUND', (0, len(data_table)-1), (-1, len(data_table)-1), colors.HexColor(hl))
     tbl.setStyle(ts)
@@ -184,12 +160,12 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
     c.setFillColor(colors.HexColor(TXT_BASE))
     c.drawString(LM, table_y - 1.8*cm, "Nota: Valore atteso calcolato su provincia × potenza impianto.")
     c.setFont("Helvetica-Bold", 10)
-    txt = {
+    msg = {
         "verde": "Risultato eccellente: produzione del mese in linea o superiore alla media attesa.",
         "arancione": "Risultato buono: produzione del mese leggermente sotto la media attesa.",
         "rosso": "Risultato inferiore agli standard: produzione del mese sensibilmente sotto la media attesa.",
     }[last_class]
-    c.drawString(LM, table_y - 2.6*cm, txt)
+    c.drawString(LM, table_y - 2.6*cm, msg)
 
     # Footer
     c.setFont("Helvetica", 9)
@@ -198,21 +174,22 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
 
     c.showPage(); c.save()
 
+
 # -------------------------
 # 3) App
 # -------------------------
 def main():
     st.title("Chelli Report")
-    st.caption("Step: Anagrafica clienti — selezione e aggiunta")
+    st.caption("Step: Anagrafica clienti — selezione, caricamento e report")
 
-    # --- ANAGRAFICA (come prima) ---
+    # --- ANAGRAFICA ---
     if "anag_df" not in st.session_state:
         st.session_state.anag_df = load_anagrafica()
     anag = st.session_state.anag_df.copy()
 
     st.subheader("Seleziona cliente")
     if anag.empty or "denominazione" not in anag.columns:
-        st.warning("Nessun cliente presente. Aggiungine uno qui sotto.")
+        st.warning("Nessun cliente presente.")
         selected = None
     else:
         denoms = sorted([d for d in anag["denominazione"].dropna().astype(str).unique() if d.strip()])
@@ -228,44 +205,6 @@ def main():
                 st.markdown(f"**Data installazione:** {row.get('data_installazione','')}")
 
     st.divider()
-    st.subheader("Aggiungi nuovo cliente")
-    from datetime import date
-    with st.form("nuovo_cliente"):
-        c1, c2 = st.columns(2)
-        with c1:
-            denominazione = st.text_input("Denominazione*", "")
-            indirizzo = st.text_input("Indirizzo*", "")
-            provincia = st.text_input("Provincia*", placeholder="es. FI, PI, SI")
-        with c2:
-            potenza_kw = st.number_input("Potenza (kW)*", min_value=0.1, step=0.1, value=5.0)
-            data_installazione = st.date_input("Data installazione*", value=date.today())
-        submitted = st.form_submit_button("Aggiungi all’elenco")
-        if submitted:
-            if not denominazione or not indirizzo or not provincia:
-                st.error("Compila i campi obbligatori contrassegnati con *")
-            else:
-                new_row = {
-                    "denominazione": denominazione.strip(),
-                    "indirizzo": indirizzo.strip(),
-                    "provincia": provincia.strip(),
-                    "potenza_kw": potenza_kw,
-                    "data_installazione": data_installazione.strftime("%d/%m/%Y"),
-                }
-                st.session_state.anag_df = pd.concat(
-                    [anag, pd.DataFrame([new_row])],
-                    ignore_index=True
-                )
-                st.success("Cliente aggiunto. Scarica il CSV aggiornato per salvarlo in modo permanente su GitHub.")
-
-    st.divider()
-    st.subheader("Esporta anagrafica aggiornata")
-    st.caption("Scarica il CSV aggiornato. Per renderlo permanente, caricalo in GitHub al posto di schema/anagrafica.csv.")
-    to_download_button(st.session_state.anag_df, "anagrafica_aggiornata.csv", "Scarica CSV aggiornato")
-
-    # =======================================================================
-    # NUOVA SEZIONE: CARICAMENTO EXCEL (12 mesi) + RIEPILOGO PRODUZIONE/MESI
-    # =======================================================================
-    st.divider()
     st.subheader("File Excel 12 mesi — caricamento e lettura")
 
     up = st.file_uploader("Carica il file Excel annuale (.xlsx)", type=["xlsx"])
@@ -273,60 +212,46 @@ def main():
         return
 
     try:
-        # prova a leggere i fogli; se esiste un foglio chiamato “Anno” usalo, altrimenti il primo
         xls = pd.read_excel(up, sheet_name=None)
         if "Anno" in xls:
             df = xls["Anno"].copy()
         else:
-            # prende il primo foglio disponibile
             first_sheet = next(iter(xls))
             df = xls[first_sheet].copy()
 
-        # normalizzazione colonne attese
-        # nomi possibili per la produzione (accetta “Energia per inverter …” o “Produzione totale”)
         prod_col = None
         for c in df.columns:
             cs = str(c)
             if "Energia per inverter" in cs or cs.strip().lower() == "produzione totale":
                 prod_col = c; break
         if prod_col is None:
-            st.error("Colonna produzione non trovata. Attesa: 'Produzione totale' oppure 'Energia per inverter | ...'")
+            st.error("Colonna produzione non trovata.")
             return
 
-        # Data e ora → datetime
         if "Data e ora" not in df.columns:
             st.error("Colonna 'Data e ora' non trovata.")
             return
         df["Data e ora"] = pd.to_datetime(df["Data e ora"], errors="coerce", dayfirst=True)
         df = df.dropna(subset=["Data e ora"])
 
-        # valori numerici (Wh) → kWh
         for col in [prod_col, "Consumo totale", "Autoconsumo", "Energia alimentata nella rete", "Energia prelevata"]:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
             else:
-                df[col] = 0.0  # se manca, metto 0 per non bloccare
+                df[col] = 0.0
         df["Produzione_kWh"]     = df[prod_col] / 1000.0
         df["Consumo_kWh"]        = df["Consumo totale"] / 1000.0
         df["Autoconsumo_kWh"]    = df["Autoconsumo"] / 1000.0
         df["Rete_immessa_kWh"]   = df["Energia alimentata nella rete"] / 1000.0
         df["Rete_prelevata_kWh"] = df["Energia prelevata"] / 1000.0
 
-        # aggregazione per mese (YYYY-MM)
         df["mese"] = df["Data e ora"].dt.to_period("M")
         agg = (df.groupby("mese")[["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]]
-                 .sum()
-                 .reset_index())
+                 .sum().reset_index())
         agg["mese"] = agg["mese"].astype(str)
-        # reformat mese → MM-YYYY
         agg["Mese"] = agg["mese"].apply(lambda s: f"{s.split('-')[1]}-{s.split('-')[0]}")
-
-        # ordina per data crescente e limita a 12 mesi
         agg = agg.sort_values("mese").tail(12).reset_index(drop=True)
 
-        # mostra tabella riepilogo
-        cols_show = ["Mese","Produzione_kWh","Consumo_kWh","Autoconsumo_KWh","Rete_immessa_kWh","Rete_prelevata_kWh"]
-        # rinomina per etichette pulite
         show = agg.rename(columns={
             "Produzione_kWh":"Produzione (kWh)",
             "Consumo_kWh":"Consumo (kWh)",
@@ -340,85 +265,59 @@ def main():
         st.success("Lettura completata.")
 
         # ---------------------------
-        # GRAFICO + PDF (SEMPRE VISIBILE)
+        # GRAFICO + PDF
         # ---------------------------
         st.subheader("Grafico + PDF")
-
-        # Valore atteso
-        atteso_last = st.number_input(
-            "Valore atteso del mese corrente (kWh)",
-            min_value=0.0, step=1.0, value=0.0
-        )
-
-        # Dati base
+        atteso_last = st.number_input("Valore atteso del mese corrente (kWh)", min_value=0.0, step=1.0, value=0.0)
         month_labels = show["Mese"].tolist()
         prod_values  = show["Produzione (kWh)"].astype(float).tolist()
         mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
         prod_last = float(prod_values[-1]) if prod_values else 0.0
 
-        # Classe colore
         if atteso_last > 0:
-            ratio = prod_last / atteso_last if atteso_last else 0
-            if ratio >= 0.90:
-                last_class = "verde"
-            elif ratio >= 0.80:
-                last_class = "arancione"
-            else:
-                last_class = "rosso"
+            ratio = prod_last / atteso_last
+            if ratio >= 0.90: last_class = "verde"
+            elif ratio >= 0.80: last_class = "arancione"
+            else: last_class = "rosso"
         else:
             last_class = "verde"
 
-        # Grafico
-        chart_img = build_monthly_chart(
-            month_labels=month_labels,
-            prod_values=prod_values,
-            atteso_last=atteso_last if atteso_last > 0 else None,
-            last_ok_class=last_class
-        )
-        st.image(chart_img, caption="Produzione ultimi 12 mesi", use_column_width=True)
+        img_bytes = build_monthly_chart(month_labels, prod_values,
+                                        atteso_last if atteso_last > 0 else None,
+                                        last_class)
+        st.image(img_bytes, caption="Produzione ultimi 12 mesi", use_column_width=True)
 
-        # Tabella per PDF
         table_rows = []
         for i, r in show.iterrows():
-            p = float(r["Produzione (kWh)"])
-            cons = float(r["Consumo (kWh)"])
-            aut  = float(r["Autoconsumo (kWh)"])
-            imm  = float(r["Rete immessa (kWh)"])
+            p = float(r["Produzione (kWh)"]); cons = float(r["Consumo (kWh)"])
+            aut = float(r["Autoconsumo (kWh)"]); imm = float(r["Rete immessa (kWh)"])
             prel = float(r["Rete prelevata (kWh)"])
-            if i == len(show) - 1 and atteso_last > 0:
-                scost = f"{(p/atteso_last - 1)*100:.1f}%"
-                att   = f"{atteso_last:.1f}"
+            if i == len(show)-1 and atteso_last > 0:
+                scost = f"{(p/atteso_last - 1)*100:.1f}%"; att = f"{atteso_last:.1f}"
             else:
-                scost = ""
-                att   = ""
-            table_rows.append([
-                r["Mese"], f"{p:.1f}", f"{cons:.1f}", f"{aut:.1f}",
-                f"{imm:.1f}", f"{prel:.1f}", att, scost
-            ])
+                scost, att = "", ""
+            table_rows.append([r["Mese"], f"{p:.1f}", f"{cons:.1f}", f"{aut:.1f}",
+                               f"{imm:.1f}", f"{prel:.1f}", att, scost])
 
-        # Anagrafica per intestazione
         if selected:
             row = anag[anag["denominazione"] == selected].iloc[0]
             anag_dict = {
-                "Denominazione":      str(row.get("denominazione","")),
-                "Indirizzo":          str(row.get("indirizzo","")),
-                "Provincia":          str(row.get("provincia","")),
-                "Potenza":            str(row.get("potenza_kw","")),
+                "Denominazione": str(row.get("denominazione","")),
+                "Indirizzo": str(row.get("indirizzo","")),
+                "Provincia": str(row.get("provincia","")),
+                "Potenza": str(row.get("potenza_kw","")),
                 "Data installazione": str(row.get("data_installazione","")),
             }
             denom_safe = str(row.get("denominazione","")).replace(" ", "")
         else:
-            anag_dict = {"Denominazione":"", "Indirizzo":"", "Provincia":"", "Potenza":"", "Data installazione":""}
+            anag_dict = {"Denominazione":"","Indirizzo":"","Provincia":"","Potenza":"","Data installazione":""}
             denom_safe = "Cliente"
 
-        # Titolo mese esteso
         mesi_it = {"01":"Gennaio","02":"Febbraio","03":"Marzo","04":"Aprile","05":"Maggio","06":"Giugno",
                    "07":"Luglio","08":"Agosto","09":"Settembre","10":"Ottobre","11":"Novembre","12":"Dicembre"}
         mm, yyyy = (mese_corrente.split("-") + ["",""])[:2]
         titolo_esteso = f"{mesi_it.get(mm, mm)} {yyyy}"
 
-        # PDF in memoria + pulsante download
-        from io import BytesIO
         pdf_buf = BytesIO()
         compose_pdf(
             path_out=pdf_buf,
@@ -427,24 +326,18 @@ def main():
             anag_dict=anag_dict,
             table_rows=table_rows,
             last_class=last_class,
-            chart_img=chart_img
+            chart_img=ImageReader(BytesIO(img_bytes))
         )
         pdf_data = pdf_buf.getvalue()
-        st.download_button(
-            "Scarica PDF",
-            data=pdf_data,
-            file_name=f"Report_{denom_safe}_{mese_corrente}.pdf",
-            mime="application/pdf"
-        )
+        st.download_button("Scarica PDF",
+                           data=pdf_data,
+                           file_name=f"Report_{denom_safe}_{mese_corrente}.pdf",
+                           mime="application/pdf")
 
-
-    
     except Exception as e:
         st.error(f"Errore lettura Excel: {e}")
-
 
 
 if __name__ == "__main__":
     if check_password():
         main()
-
