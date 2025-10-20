@@ -53,6 +53,150 @@ def to_download_button(df: pd.DataFrame, filename: str, label: str):
     buf = BytesIO()
     df.to_csv(buf, index=False)
     st.download_button(label, buf.getvalue(), file_name=filename, mime="text/csv")
+# -------------------------
+# 2bis) Funzioni helper: grafico e PDF
+# -------------------------
+
+# Palette per il grafico
+GREEN_MAIN = "#006633"
+ORANGE = "#F9A825"
+RED = "#C62828"
+GRAY_PRIOR = "#9b9b9b"
+TXT_DARK = "#212121"
+TXT_BASE = "#424242"
+GRID = "#DDDDDD"
+
+def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_class="verde"):
+    """Ritorna un ImageReader con il grafico a barre.
+       - month_labels: list di stringhe MM-YYYY
+       - prod_values: list di float (kWh)
+       - atteso_last: float o None (linea standard del mese corrente)
+       - last_ok_class: 'verde' | 'arancione' | 'rosso' per colore ultima barra
+    """
+    fig, ax = plt.subplots(figsize=(7.3, 4.3))
+    x = np.arange(len(month_labels))
+    widths = np.array([0.5]*len(month_labels))
+    colors_bars = [GRAY_PRIOR]*len(month_labels)
+
+    # colore ultima barra
+    last_color = GREEN_MAIN if last_ok_class=="verde" else (ORANGE if last_ok_class=="arancione" else RED)
+    colors_bars[-1] = last_color
+    widths[-1] = 0.7
+
+    bars = ax.bar(x, prod_values, width=widths, color=colors_bars, edgecolor="none")
+    ax.set_ylabel("Produzione (kWh)")
+    ax.set_xticks(x, month_labels, rotation=45, ha="right", fontsize=9)
+    ymax = max(prod_values) if prod_values else 1
+    ax.set_ylim(0, ymax*1.2)
+
+    # valori sopra le barre
+    for b in bars:
+        h = b.get_height()
+        ax.text(b.get_x()+b.get_width()/2, h + ymax*0.012, f"{h:.0f}", ha='center', va='bottom', fontsize=8)
+
+    # linea atteso solo per l'ultima barra
+    if atteso_last is not None and len(bars)>0:
+        last_bar = bars[-1]
+        bx, bw = last_bar.get_x(), last_bar.get_width()
+        ax.hlines(y=atteso_last, xmin=bx, xmax=bx+bw, colors="white", linewidth=1.2, linestyles=(0,(2,2)))
+        # etichetta piccola in nero
+        ax.text(bx + bw/2, atteso_last + 10, "valore standard del mese", ha="center", va="bottom",
+                color="black", fontsize=6)
+
+    # Esporta in buffer come PNG
+    buf = BytesIO()
+    plt.tight_layout()
+    fig.savefig(buf, format="PNG", dpi=300)
+    plt.close(fig)
+    buf.seek(0)
+    return ImageReader(buf)
+
+
+def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_class, chart_img):
+    """Crea PDF A4 con:
+       - logo, titolo "Report produzione fotovoltaica <Mese YYYY>"
+       - anagrafica
+       - grafico
+       - tabella 12 mesi (intestazioni ridotte)
+       - nota + testo dinamico
+    """
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from reportlab.platypus import Table, TableStyle
+    from reportlab.lib import colors
+
+    c = canvas.Canvas(path_out, pagesize=A4)
+    page_w, page_h = A4
+    LM, RM, TM, BM = 2*cm, 2*cm, 2*cm, 2*cm
+
+    # Logo
+    logo_w = 7*cm; logo_h = 2.3*cm
+    logo_y = page_h - TM - logo_h + 0.3*cm
+    c.drawImage(logo_path, (page_w - logo_w)/2, logo_y, width=logo_w, height=logo_h, preserveAspectRatio=True, mask='auto')
+
+    # Titolo con mese per esteso
+    c.setFont("Helvetica-Bold", 14)
+    c.setFillColor(colors.HexColor(TXT_DARK))
+    c.drawCentredString(page_w/2, logo_y - 0.9*cm, f"Report produzione fotovoltaica {title_mmYYYY}")
+
+    # Anagrafica
+    c.setFont("Helvetica", 10)
+    c.setFillColor(colors.HexColor(TXT_BASE))
+    y = logo_y - 1.9*cm
+    for label in ["Denominazione","Indirizzo","Provincia","Potenza","Data installazione"]:
+        c.drawString(LM, y, f"{label}:")
+        c.drawString(LM + 4.5*cm, y, str(anag_dict.get(label, '')))
+        y -= 0.42*cm
+
+    # Grafico
+    chart_w = page_w - LM - RM; chart_h = 9.0*cm
+    chart_y = y - 0.7*cm - chart_h
+    c.drawImage(chart_img, LM, chart_y, width=chart_w, height=chart_h, preserveAspectRatio=True, mask='auto')
+
+    # Tabella
+    table_y = chart_y - 0.8*cm - 5.2*cm
+    hdr = ["Mese","Produzione\nkWh","Consumo\nkWh","Autoconsumo\nkWh","Rete\nimmessa","Rete\nprelevata","Atteso\nkWh","Scost.\n%"]
+    data_table = [hdr] + table_rows
+    col_widths = [1.6*cm, 1.8*cm, 1.8*cm, 2.0*cm, 1.8*cm, 2.0*cm, 1.8*cm, 1.6*cm]
+
+    tbl = Table(data_table, colWidths=col_widths)
+    ts = TableStyle([
+        ('FONT', (0,0), (-1,0), 'Helvetica-Bold', 6.5),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor(TXT_DARK)),
+        ('FONT', (0,1), (-1,-1), 'Helvetica', 6.5),
+        ('ALIGN', (1,1), (-1,-1), 'RIGHT'),
+        ('ALIGN', (0,0), (0,-1), 'LEFT'),
+        ('LINEBELOW', (0,0), (-1,0), 0.5, colors.HexColor(GRID)),
+        ('INNERGRID', (0,1), (-1,-1), 0.2, colors.HexColor(GRID)),
+        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor(GRID)),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor("#FAFAFA")]),
+    ])
+    # highlight ultima riga
+    hl = "#E8F5E9" if last_class=="verde" else ("#FFF8E1" if last_class=="arancione" else "#FFEBEE")
+    ts.add('BACKGROUND', (0, len(data_table)-1), (-1, len(data_table)-1), colors.HexColor(hl))
+    tbl.setStyle(ts)
+    w, h = tbl.wrap(page_w, 5.2*cm)
+    tbl.drawOn(c, (page_w - w)/2, table_y)
+
+    # Caption
+    c.setFont("Helvetica", 9)
+    c.setFillColor(colors.HexColor(TXT_BASE))
+    c.drawString(LM, table_y - 1.8*cm, "Nota: Valore atteso calcolato su provincia × potenza impianto.")
+    c.setFont("Helvetica-Bold", 10)
+    txt = {
+        "verde": "Risultato eccellente: produzione del mese in linea o superiore alla media attesa.",
+        "arancione": "Risultato buono: produzione del mese leggermente sotto la media attesa.",
+        "rosso": "Risultato inferiore agli standard: produzione del mese sensibilmente sotto la media attesa.",
+    }[last_class]
+    c.drawString(LM, table_y - 2.6*cm, txt)
+
+    # Footer
+    c.setFont("Helvetica", 9)
+    c.setFillColor(colors.HexColor("#616161"))
+    c.drawCentredString(page_w/2, 1.5*cm, "Chelli Energy Solutions — Report automatico")
+
+    c.showPage(); c.save()
 
 # -------------------------
 # 3) App
