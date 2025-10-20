@@ -7,18 +7,15 @@ def check_password():
         st.error("Password non configurata. Imposta APP_PASSWORD nei Secrets.")
         st.stop()
 
-    if "auth_ok" not in st.session_state:
-        st.session_state.auth_ok = False
-
-    if st.session_state.auth_ok:
+    if st.session_state.get("auth_ok", False):
         return True
 
     st.title("Accesso riservato")
     pwd = st.text_input("Password", type="password")
     if st.button("Entra"):
         if pwd == pw:
-            st.session_state.auth_ok = True
-            st.experimental_rerun()
+            st.session_state["auth_ok"] = True
+            st.rerun()  # <— fix
         else:
             st.error("Password errata")
     st.stop()
