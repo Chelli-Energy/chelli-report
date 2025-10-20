@@ -305,13 +305,7 @@ def main():
 
 
 
-        st.subheader("Riepilogo 12 mesi (kWh)")
-        st.dataframe(
-            show.style.format({c: "{:.1f}" for c in num_cols}),
-            use_container_width=True
-        )
 
-        st.success("Lettura completata.")
 
         # ---------------------------
         # GRAFICO + PDF
