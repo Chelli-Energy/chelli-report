@@ -292,8 +292,7 @@ def main():
             "Rete_immessa_kWh":"Rete immessa (kWh)",
             "Rete_prelevata_kWh":"Rete prelevata (kWh)"
         })[["Mese","Produzione (kWh)","Consumo (kWh)","Autoconsumo (kWh)","Rete immessa (kWh)","Rete prelevata (kWh)"]]
-        
-        # forza numerico sulle colonne kWh
+        # colonne numeriche
         num_cols = [
             "Produzione (kWh)",
             "Consumo (kWh)",
@@ -305,8 +304,13 @@ def main():
             show[c] = pd.to_numeric(show[c], errors="coerce").fillna(0.0)
 
 
+
         st.subheader("Riepilogo 12 mesi (kWh)")
-        st.dataframe(show.style.format("{:.1f}"), use_container_width=True)
+        st.dataframe(
+            show.style.format({c: "{:.1f}" for c in num_cols}),
+            use_container_width=True
+        )
+
         st.success("Lettura completata.")
 
         # ---------------------------
@@ -334,19 +338,19 @@ def main():
 
         table_rows = []
         for i, r in show.iterrows():
-            p    = r["Produzione (kWh)"]
-            cons = r["Consumo (kWh)"]
-            aut  = r["Autoconsumo (kWh)"]
-            imm  = r["Rete immessa (kWh)"]
-            prel = r["Rete prelevata (kWh)"]
-            if i == len(show)-1 and atteso_last > 0:
-                scost = f"{(p/atteso_last - 1)*100:.1f}%"; att = f"{atteso_last:.1f}"
+            p    = float(r["Produzione (kWh)"])
+            cons = float(r["Consumo (kWh)"])
+            aut  = float(r["Autoconsumo (kWh)"])
+            imm  = float(r["Rete immessa (kWh)"])
+            prel = float(r["Rete prelevata (kWh)"])
+            if i == len(show) - 1 and atteso_last > 0:
+                scost = f"{(p/atteso_last - 1)*100:.1f}%"
+                att   = f"{atteso_last:.1f}"
             else:
                 scost, att = "", ""
-            table_rows.append([
-        r["Mese"], f"{p:.1f}", f"{cons:.1f}", f"{aut:.1f}",
-        f"{imm:.1f}", f"{prel:.1f}", att, scost
-    ])
+            table_rows.append([r["Mese"], f"{p:.1f}", f"{cons:.1f}", f"{aut:.1f}",
+                               f"{imm:.1f}", f"{prel:.1f}", att, scost])
+
 
         if selected:
             row = anag[anag["denominazione"] == selected].iloc[0]
