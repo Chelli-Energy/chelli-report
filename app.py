@@ -117,7 +117,6 @@ def main():
 
     up = st.file_uploader("Carica il file Excel annuale (.xlsx)", type=["xlsx"])
     if up is None:
-        st.info("Carica un file con gli ultimi 12 mesi.")
         return
 
     try:
