@@ -203,6 +203,39 @@ def main():
             with c2:
                 st.markdown(f"**Potenza (kW):** {row.get('potenza_kw','')}")
                 st.markdown(f"**Data installazione:** {row.get('data_installazione','')}")
+                
+    # --- Aggiungi nuovo cliente (ripristino) ---
+    st.divider()
+    st.subheader("Aggiungi nuovo cliente")
+    with st.form("nuovo_cliente"):
+        c1, c2 = st.columns(2)
+        with c1:
+            denominazione = st.text_input("Denominazione*", "")
+            indirizzo = st.text_input("Indirizzo*", "")
+            provincia = st.text_input("Provincia*", placeholder="es. FI, PI, SI")
+        with c2:
+            potenza_kw = st.number_input("Potenza (kW)*", min_value=0.1, step=0.1, value=5.0)
+            data_installazione = st.date_input("Data installazione*", value=date.today())
+        submitted = st.form_submit_button("Aggiungi all’elenco")
+        if submitted:
+            if not denominazione or not indirizzo or not provincia:
+                st.error("Compila i campi obbligatori contrassegnati con *")
+            else:
+                new_row = {
+                    "denominazione": denominazione.strip(),
+                    "indirizzo": indirizzo.strip(),
+                    "provincia": provincia.strip(),
+                    "potenza_kw": potenza_kw,
+                    "data_installazione": data_installazione.strftime("%d/%m/%Y"),
+                }
+                st.session_state.anag_df = pd.concat(
+                    [st.session_state.anag_df, pd.DataFrame([new_row])],
+                    ignore_index=True
+                )
+                st.success("Cliente aggiunto. Scarica il CSV aggiornato per salvarlo in modo permanente su GitHub.")
+
+    st.subheader("Esporta anagrafica aggiornata")
+    to_download_button(st.session_state.anag_df, "anagrafica_aggiornata.csv", "Scarica CSV aggiornato")
 
     st.divider()
     st.subheader("File Excel 12 mesi — caricamento e lettura")
