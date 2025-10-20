@@ -128,12 +128,12 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
         y -= 0.42*cm
 
     # Grafico
-    chart_w = page_w - LM - RM; chart_h = 9.0*cm
+    chart_w = page_w - LM - RM; chart_h = 8.0*cm
     chart_y = y - 0.7*cm - chart_h
     c.drawImage(chart_img, LM, chart_y, width=chart_w, height=chart_h, preserveAspectRatio=True, mask='auto')
 
     # Tabella
-    table_y = chart_y - 0.8*cm - 5.2*cm
+    table_y = chart_y - 1.2*cm - 5.2*cm
     hdr = ["Mese","Produzione\nkWh","Consumo\nkWh","Autoconsumo\nkWh","Rete\nimmessa","Rete\nprelevata","Atteso\nkWh","Scost.\n%"]
     data_table = [hdr] + table_rows
     col_widths = [1.6*cm, 1.8*cm, 1.8*cm, 2.0*cm, 1.8*cm, 2.0*cm, 1.8*cm, 1.6*cm]
@@ -334,7 +334,7 @@ def main():
         img_bytes = build_monthly_chart(month_labels, prod_values,
                                         atteso_last if atteso_last > 0 else None,
                                         last_class)
-        st.image(img_bytes, caption="Produzione ultimi 12 mesi", use_column_width=True)
+        
 
         table_rows = []
         for i, r in show.iterrows():
