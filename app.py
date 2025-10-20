@@ -311,7 +311,7 @@ def main():
         # PDF
         # ---------------------------
         st.subheader("PDF")
-        atteso_last = st.number_input("Valore atteso del mese corrente (kWh)", min_value=0.0, step=1.0, value=0.0)
+        atteso_last = 0.0  # verrà impostato automaticamente in futuro
         month_labels = show["Mese"].tolist()
         prod_values  = show["Produzione (kWh)"].astype(float).tolist()
         mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
