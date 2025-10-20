@@ -294,10 +294,16 @@ def main():
         })[["Mese","Produzione (kWh)","Consumo (kWh)","Autoconsumo (kWh)","Rete immessa (kWh)","Rete prelevata (kWh)"]]
         
         # forza numerico sulle colonne kWh
-        num_cols = ["Produzione (kWh)","Consumo (kWh)","Autoconsumo (kWh)",
-            "Rete immessa (kWh)","Rete prelevata (kWh)"]
+        num_cols = [
+            "Produzione (kWh)",
+            "Consumo (kWh)",
+            "Autoconsumo (kWh)",
+            "Rete immessa (kWh)",
+            "Rete prelevata (kWh)"
+        ]
         for c in num_cols:
-        show[c] = pd.to_numeric(show[c], errors="coerce").fillna(0.0)
+            show[c] = pd.to_numeric(show[c], errors="coerce").fillna(0.0)
+
 
         st.subheader("Riepilogo 12 mesi (kWh)")
         st.dataframe(show.style.format("{:.1f}"), use_container_width=True)
