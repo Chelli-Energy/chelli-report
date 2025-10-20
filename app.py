@@ -50,25 +50,45 @@ def to_download_button(df: pd.DataFrame, filename: str, label: str):
 # -------------------------
 def main():
     st.title("Chelli Report")
-    st.caption("Step: Anagrafica clienti — visualizza e aggiungi")
+    st.caption("Step: Anagrafica clienti — selezione e aggiunta")
 
-    # carica anagrafica di base dal repo (sola lettura)
+    # carica anagrafica (da CSV locale finché non usiamo Google Sheets)
     if "anag_df" not in st.session_state:
         st.session_state.anag_df = load_anagrafica()
+    anag = st.session_state.anag_df.copy()
 
-    st.subheader("Elenco clienti")
-    st.dataframe(st.session_state.anag_df, use_container_width=True)
+    # --- TENDINA DENOMINAZIONE ORDINATA ---
+    st.subheader("Seleziona cliente")
+    if anag.empty or "denominazione" not in anag.columns:
+        st.warning("Nessun cliente presente. Aggiungine uno qui sotto.")
+        selected = None
+    else:
+        # lista denominazioni uniche ordinate
+        denoms = sorted([d for d in anag["denominazione"].dropna().astype(str).unique() if d.strip()])
+        selected = st.selectbox("Denominazione", options=denoms, index=0 if denoms else None, placeholder="Scegli...")
+
+        # mostra dettagli sintetici del cliente scelto
+        if selected:
+            row = anag[anag["denominazione"] == selected].iloc[0]
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(f"**Indirizzo:** {row.get('indirizzo','')}")
+                st.markdown(f"**Provincia:** {row.get('provincia','')}")
+            with col2:
+                st.markdown(f"**Potenza (kW):** {row.get('potenza_kw','')}")
+                st.markdown(f"**Data installazione:** {row.get('data_installazione','')}")
 
     st.divider()
     st.subheader("Aggiungi nuovo cliente")
 
+    from datetime import date
     with st.form("nuovo_cliente"):
-        col1, col2 = st.columns([1,1])
-        with col1:
+        c1, c2 = st.columns(2)
+        with c1:
             denominazione = st.text_input("Denominazione*", "")
             indirizzo = st.text_input("Indirizzo*", "")
             provincia = st.text_input("Provincia*", placeholder="es. FI, PI, SI")
-        with col2:
+        with c2:
             potenza_kw = st.number_input("Potenza (kW)*", min_value=0.1, step=0.1, value=5.0)
             data_installazione = st.date_input("Data installazione*", value=date.today())
 
@@ -85,15 +105,16 @@ def main():
                     "data_installazione": data_installazione.strftime("%d/%m/%Y"),
                 }
                 st.session_state.anag_df = pd.concat(
-                    [st.session_state.anag_df, pd.DataFrame([new_row])],
+                    [anag, pd.DataFrame([new_row])],
                     ignore_index=True
                 )
-                st.success("Cliente aggiunto nell’elenco corrente.")
+                st.success("Cliente aggiunto. Scarica il CSV aggiornato per salvarlo in modo permanente su GitHub.")
 
     st.divider()
     st.subheader("Esporta anagrafica aggiornata")
-    st.caption("Nota: la repo GitHub è in sola lettura durante l’esecuzione dell’app. Scarica il CSV aggiornato e, se vuoi renderlo permanente, caricalo in GitHub al posto di `schema/anagrafica.csv`.")
+    st.caption("Scarica il CSV aggiornato. Per renderlo permanente, caricalo in GitHub al posto di schema/anagrafica.csv.")
     to_download_button(st.session_state.anag_df, "anagrafica_aggiornata.csv", "Scarica CSV aggiornato")
+
 
 if __name__ == "__main__":
     if check_password():
