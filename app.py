@@ -342,106 +342,106 @@ def main():
     # ---------------------------
     # GRAFICO + PDF SCARICABILE
     # ---------------------------
-    st.subheader("Grafico + PDF")
-
-    # 1) Valore atteso del mese corrente (in attesa dei coefficienti provincia)
-    atteso_last = st.number_input(
-        "Valore atteso del mese corrente (kWh)",
-        min_value=0.0, step=1.0, value=0.0
-    )
-
-    # 2) Dati per grafico
-    month_labels = show["Mese"].tolist()                         # es. ["11-2024", ..., "09-2025"]
-    prod_values  = show["Produzione (kWh)"].astype(float).tolist()
-    mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
-    prod_last = float(prod_values[-1]) if prod_values else 0.0
-
-    # 3) Classe colore (verde/arancione/rosso)
-    if atteso_last > 0:
-        ratio = prod_last / atteso_last
-        if ratio >= 0.90:        # ≥ atteso o entro −10%
-            last_class = "verde"
-        elif ratio >= 0.80:      # tra −10% e −20%
-            last_class = "arancione"
-        else:                    # < −20%
-            last_class = "rosso"
-    else:
-        last_class = "verde"     # fallback se non inserito
-
-    # 4) Tabella per PDF (atteso e scostamento solo sull'ultima riga)
-    table_rows = []
-    for i, r in show.iterrows():
-        mese = r["Mese"]
-        p    = float(r["Produzione (kWh)"])
-        cons = float(r["Consumo (kWh)"])
-        aut  = float(r["Autoconsumo (kWh)"])
-        imm  = float(r["Rete immessa (kWh)"])
-        prel = float(r["Rete prelevata (kWh)"])
-        if i == len(show) - 1 and atteso_last > 0:
-            scost = f"{(p/atteso_last - 1)*100:.1f}%"
-            att   = f"{atteso_last:.1f}"
-        else:
-            scost = ""
-            att   = ""
-        table_rows.append([
-            mese,
-            f"{p:.1f}",
-            f"{cons:.1f}",
-            f"{aut:.1f}",
-            f"{imm:.1f}",
-            f"{prel:.1f}",
-            att,
-            scost
-        ])
-
-    # 5) Anagrafica per intestazione PDF
-    if selected:
-        row = anag[anag["denominazione"] == selected].iloc[0]
-        anag_dict = {
-            "Denominazione":      str(row.get("denominazione","")),
-            "Indirizzo":          str(row.get("indirizzo","")),
-            "Provincia":          str(row.get("provincia","")),
-            "Potenza":            str(row.get("potenza_kw","")),
-            "Data installazione": str(row.get("data_installazione","")),
-        }
-        denom_safe = str(row.get("denominazione","")).replace(" ", "")
-    else:
-        anag_dict = {"Denominazione":"", "Indirizzo":"", "Provincia":"", "Potenza":"", "Data installazione":""}
-        denom_safe = "Cliente"
-
-    # 6) Grafico
-    chart_img = build_monthly_chart(
-        month_labels=month_labels,
-        prod_values=prod_values,
-        atteso_last=atteso_last if atteso_last > 0 else None,
-        last_ok_class=last_class
-    )
-
-    # 7) Titolo "mese per esteso"
-    mesi_it = {"01":"Gennaio","02":"Febbraio","03":"Marzo","04":"Aprile","05":"Maggio","06":"Giugno",
-               "07":"Luglio","08":"Agosto","09":"Settembre","10":"Ottobre","11":"Novembre","12":"Dicembre"}
-    mm, yyyy = (mese_corrente.split("-") + ["",""])[:2]
-    titolo_esteso = f"{mesi_it.get(mm, mm)} {yyyy}"
-
-    # 8) Composizione PDF in memoria e download
-    from io import BytesIO
-    pdf_buf = BytesIO()
-    compose_pdf(
-        path_out=pdf_buf,                      # BytesIO, non file su disco
-        logo_path="assets/logo.jpg",
-        title_mmYYYY=titolo_esteso,
-        anag_dict=anag_dict,
-        table_rows=table_rows,
-        last_class=last_class,
-        chart_img=chart_img
-    )
-    pdf_data = pdf_buf.getvalue()
-    st.download_button(
-        "Scarica PDF",
-        data=pdf_data,
-        file_name=f"Report_{denom_safe}_{mese_corrente}.pdf",
-        mime="application/pdf"
-    )
+            st.subheader("Grafico + PDF")
+        
+            # 1) Valore atteso del mese corrente (in attesa dei coefficienti provincia)
+            atteso_last = st.number_input(
+                "Valore atteso del mese corrente (kWh)",
+                min_value=0.0, step=1.0, value=0.0
+            )
+        
+            # 2) Dati per grafico
+            month_labels = show["Mese"].tolist()                         # es. ["11-2024", ..., "09-2025"]
+            prod_values  = show["Produzione (kWh)"].astype(float).tolist()
+            mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
+            prod_last = float(prod_values[-1]) if prod_values else 0.0
+        
+            # 3) Classe colore (verde/arancione/rosso)
+            if atteso_last > 0:
+                ratio = prod_last / atteso_last
+                if ratio >= 0.90:        # ≥ atteso o entro −10%
+                    last_class = "verde"
+                elif ratio >= 0.80:      # tra −10% e −20%
+                    last_class = "arancione"
+                else:                    # < −20%
+                    last_class = "rosso"
+            else:
+                last_class = "verde"     # fallback se non inserito
+        
+            # 4) Tabella per PDF (atteso e scostamento solo sull'ultima riga)
+            table_rows = []
+            for i, r in show.iterrows():
+                mese = r["Mese"]
+                p    = float(r["Produzione (kWh)"])
+                cons = float(r["Consumo (kWh)"])
+                aut  = float(r["Autoconsumo (kWh)"])
+                imm  = float(r["Rete immessa (kWh)"])
+                prel = float(r["Rete prelevata (kWh)"])
+                if i == len(show) - 1 and atteso_last > 0:
+                    scost = f"{(p/atteso_last - 1)*100:.1f}%"
+                    att   = f"{atteso_last:.1f}"
+                else:
+                    scost = ""
+                    att   = ""
+                table_rows.append([
+                    mese,
+                    f"{p:.1f}",
+                    f"{cons:.1f}",
+                    f"{aut:.1f}",
+                    f"{imm:.1f}",
+                    f"{prel:.1f}",
+                    att,
+                    scost
+                ])
+        
+            # 5) Anagrafica per intestazione PDF
+            if selected:
+                row = anag[anag["denominazione"] == selected].iloc[0]
+                anag_dict = {
+                    "Denominazione":      str(row.get("denominazione","")),
+                    "Indirizzo":          str(row.get("indirizzo","")),
+                    "Provincia":          str(row.get("provincia","")),
+                    "Potenza":            str(row.get("potenza_kw","")),
+                    "Data installazione": str(row.get("data_installazione","")),
+                }
+                denom_safe = str(row.get("denominazione","")).replace(" ", "")
+            else:
+                anag_dict = {"Denominazione":"", "Indirizzo":"", "Provincia":"", "Potenza":"", "Data installazione":""}
+                denom_safe = "Cliente"
+        
+            # 6) Grafico
+            chart_img = build_monthly_chart(
+                month_labels=month_labels,
+                prod_values=prod_values,
+                atteso_last=atteso_last if atteso_last > 0 else None,
+                last_ok_class=last_class
+            )
+        
+            # 7) Titolo "mese per esteso"
+            mesi_it = {"01":"Gennaio","02":"Febbraio","03":"Marzo","04":"Aprile","05":"Maggio","06":"Giugno",
+                       "07":"Luglio","08":"Agosto","09":"Settembre","10":"Ottobre","11":"Novembre","12":"Dicembre"}
+            mm, yyyy = (mese_corrente.split("-") + ["",""])[:2]
+            titolo_esteso = f"{mesi_it.get(mm, mm)} {yyyy}"
+        
+            # 8) Composizione PDF in memoria e download
+            from io import BytesIO
+            pdf_buf = BytesIO()
+            compose_pdf(
+                path_out=pdf_buf,                      # BytesIO, non file su disco
+                logo_path="assets/logo.jpg",
+                title_mmYYYY=titolo_esteso,
+                anag_dict=anag_dict,
+                table_rows=table_rows,
+                last_class=last_class,
+                chart_img=chart_img
+            )
+            pdf_data = pdf_buf.getvalue()
+            st.download_button(
+                "Scarica PDF",
+                data=pdf_data,
+                file_name=f"Report_{denom_safe}_{mese_corrente}.pdf",
+                mime="application/pdf"
+            )
 
     
     except Exception as e:
