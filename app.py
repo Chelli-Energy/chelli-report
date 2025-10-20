@@ -308,9 +308,9 @@ def main():
 
 
         # ---------------------------
-        # GRAFICO + PDF
+        # PDF
         # ---------------------------
-        st.subheader("Grafico + PDF")
+        st.subheader("PDF")
         atteso_last = st.number_input("Valore atteso del mese corrente (kWh)", min_value=0.0, step=1.0, value=0.0)
         month_labels = show["Mese"].tolist()
         prod_values  = show["Produzione (kWh)"].astype(float).tolist()
