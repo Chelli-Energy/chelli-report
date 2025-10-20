@@ -2,6 +2,15 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from datetime import date
+import matplotlib.pyplot as plt
+import numpy as np
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from reportlab.platypus import Table, TableStyle
+from reportlab.lib.utils import ImageReader
+
 
 # -------------------------
 # 1) Gate con password unica
@@ -185,10 +194,11 @@ def main():
         st.subheader("Riepilogo 12 mesi (kWh)")
         st.dataframe(show.style.format("{:.1f}"), use_container_width=True)
 
-        st.success("Lettura completata. Prossimo passo: grafico + PDF (quando arrivano le credenziali Google useremo l’anagrafica online).")
+        st.success("Lettura completata.")
 
     except Exception as e:
         st.error(f"Errore lettura Excel: {e}")
+
 
 
 if __name__ == "__main__":
