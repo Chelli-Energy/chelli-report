@@ -67,6 +67,17 @@ TXT_DARK = "#212121"
 TXT_BASE = "#424242"
 GRID = "#DDDDDD"
 
+PROVINCE_MAP = {
+    "FIRENZE":"FI","FI":"FI","PISA":"PI","PI":"PI","SIENA":"SI","SI":"SI",
+    "GROSSETO":"GR","GR":"GR","LIVORNO":"LI","LI":"LI","LUCCA":"LU","LU":"LU",
+    "AREZZO":"AR","AR":"AR","PISTOIA":"PT","PT":"PT","MASSA-CARRARA":"MS","MS":"MS","MASSA CARRARA":"MS"
+}
+MESE_COL = {
+    "01":"gennaio","02":"febbraio","03":"marzo","04":"aprile","05":"maggio","06":"giugno",
+    "07":"luglio","08":"agosto","09":"settembre","10":"ottobre","11":"novembre","12":"dicembre"
+}
+
+
 def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_class="verde"):
     """Ritorna bytes PNG del grafico a barre."""
     fig, ax = plt.subplots(figsize=(7.3, 4.3))
