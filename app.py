@@ -75,6 +75,55 @@ def df_append_row(ws, row_dict):
     values = [row_dict.get(h, "") for h in headers]
     ws.append_row(values)
 
+def load_anagrafica_gs():
+    """Legge il foglio 'anagrafica' e normalizza la provincia a sigla."""
+    try:
+        sh = gs_client(); ws = sh.worksheet("anagrafica")
+        df = sheet_to_df(ws)
+        # garantisce colonne
+        for c in ANAG_COLS:
+            if c not in df.columns: df[c] = ""
+        # normalizza provincia -> sigla
+        df["provincia"] = (
+            df["provincia"].astype(str).str.strip().str.upper()
+              .map(lambda x: PROVINCE_MAP.get(x, x))
+        )
+        return df[ANAG_COLS]
+    except Exception as e:
+        st.error(f"Errore lettura anagrafica (GS): {e}")
+        return pd.DataFrame(columns=ANAG_COLS)
+
+def append_anagrafica_gs(row: dict):
+    """Aggiunge un cliente al foglio 'anagrafica'."""
+    sh = gs_client(); ws = sh.worksheet("anagrafica")
+    df_append_row(ws, row)
+
+def load_coeff_gs():
+    """Legge il foglio 'province_coeff' e forza i mesi a numerico."""
+    sh = gs_client(); ws = sh.worksheet("province_coeff")
+    df = sheet_to_df(ws)
+    # normalizza provincia -> sigla
+    df["provincia"] = (
+        df["provincia"].astype(str).str.strip().str.upper()
+          .map(lambda x: PROVINCE_MAP.get(x, x))
+    )
+    # forza numerico per tutti i mesi
+    for col in ["gennaio","febbraio","marzo","aprile","maggio","giugno",
+                "luglio","agosto","settembre","ottobre","novembre","dicembre"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
+        else:
+            df[col] = 0.0
+    return df
+
+def atteso_for_last_month(prov_sigla: str, potenza_kw: float, last_mm: str, coeff_df: pd.DataFrame) -> float:
+    """Restituisce kWh attesi del mese corrente: coeff(prov, mese)*potenza."""
+    mese_col = MESE_COL.get(last_mm, None)
+    if not mese_col: return 0.0
+    row = coeff_df[coeff_df["provincia"] == prov_sigla]
+    if row.empty: return 0.0
+    coeff = float(row.iloc[0][mese_col])  # kWh per kW
+    return coeff * float(potenza_kw or 0.0)
 
 # -------------------------
 # 2bis) Funzioni helper: grafico e PDF
