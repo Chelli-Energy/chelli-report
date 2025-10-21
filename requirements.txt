@@ -4,3 +4,5 @@ numpy
 openpyxl
 matplotlib
 reportlab
+gspread
+google-auth
