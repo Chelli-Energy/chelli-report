@@ -55,6 +55,26 @@ def to_download_button(df: pd.DataFrame, filename: str, label: str):
     df.to_csv(buf, index=False)
     st.download_button(label, buf.getvalue(), file_name=filename, mime="text/csv")
 
+def gs_client():
+    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+    info = st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"]
+    creds = Credentials.from_service_account_info(eval(info), scopes=scopes)
+    gc = gspread.authorize(creds)
+    sh = gc.open_by_key(st.secrets["GSHEET_ID"])
+    return sh
+
+def sheet_to_df(ws):
+    rows = ws.get_all_records()
+    return pd.DataFrame(rows)
+
+def df_append_row(ws, row_dict):
+    headers = ws.row_values(1)
+    if not headers:
+        ws.append_row(list(row_dict.keys()))
+        headers = ws.row_values(1)
+    values = [row_dict.get(h, "") for h in headers]
+    ws.append_row(values)
+
 
 # -------------------------
 # 2bis) Funzioni helper: grafico e PDF
