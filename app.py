@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+import gspread
+from google.oauth2.service_account import Credentials
 from datetime import date
 import matplotlib.pyplot as plt
 import numpy as np
