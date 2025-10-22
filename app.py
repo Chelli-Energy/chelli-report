@@ -198,6 +198,19 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     ymax = max(prod_values) if prod_values else 1
     ax.set_ylim(0, ymax*1.2)
 
+    # segna la media 12 mesi sul mese corrente
+    if len(prod_values) > 0:
+        mean_val = float(np.mean(prod_values))
+        if len(bars) > 0:
+            last_bar = bars[-1]
+            bx, bw = last_bar.get_x(), last_bar.get_width()
+            ax.hlines(y=mean_val, xmin=bx, xmax=bx+bw,
+                      colors="#555555", linewidth=1.0, linestyles=(0,(3,2)))
+            ax.text(bx + bw/2, mean_val + (ymax*0.012),
+                    "media 12 mesi", ha="center", va="bottom",
+                    fontsize=6, color="#333333")
+
+
     for b in bars:
         h = b.get_height()
         ax.text(b.get_x()+b.get_width()/2, h + ymax*0.012, f"{h:.0f}", ha='center', va='bottom', fontsize=8)
