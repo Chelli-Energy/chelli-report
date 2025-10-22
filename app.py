@@ -299,22 +299,24 @@ def main():
             potenza_kw = st.number_input("Potenza (kW)*", min_value=0.1, step=0.1, value=5.0)
             data_installazione = st.date_input("Data installazione*", value=date.today())
         submitted = st.form_submit_button("Aggiungi all’elenco")
-        if submitted:
-            if not denominazione or not indirizzo or not provincia:
-                st.error("Compila i campi obbligatori contrassegnati con *")
-            else:
-                new_row = {
-                    "denominazione": denominazione.strip(),
-                    "indirizzo": indirizzo.strip(),
-                    "provincia": provincia.strip(),
-                    "potenza_kw": potenza_kw,
-                    "data_installazione": data_installazione.strftime("%d/%m/%Y"),
-                }
-                st.session_state.anag_df = pd.concat(
-                    [st.session_state.anag_df, pd.DataFrame([new_row])],
-                    ignore_index=True
-                )
-                st.success("Cliente aggiunto. Scarica il CSV aggiornato per salvarlo in modo permanente su GitHub.")
+if submitted:
+    if not denominazione or not indirizzo or not provincia:
+        st.error("Compila i campi obbligatori contrassegnati con *")
+    else:
+        new_row = {
+            "denominazione": denominazione.strip(),
+            "indirizzo": indirizzo.strip(),
+            "provincia": PROVINCE_MAP.get(provincia.strip().upper(), provincia.strip().upper()),
+            "potenza_kw": float(potenza_kw),
+            "data_installazione": data_installazione.strftime("%d/%m/%Y"),
+        }
+        try:
+            append_anagrafica_gs(new_row)                 # scrive su Google Sheets
+            st.session_state.anag_df = load_anagrafica_gs()  # ricarica da GS
+            st.success("Cliente aggiunto su Google Sheets.")
+        except Exception as e:
+            st.error(f"Errore salvataggio su Google Sheets: {e}")
+
 
     st.subheader("Esporta anagrafica aggiornata")
     to_download_button(st.session_state.anag_df, "anagrafica_aggiornata.csv", "Scarica CSV aggiornato")
