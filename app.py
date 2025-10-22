@@ -198,19 +198,7 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     ymax = max(prod_values) if prod_values else 1
     ax.set_ylim(0, ymax*1.2)
 
-    # segna la media 12 mesi sul mese corrente
-    if len(prod_values) > 0:
-        mean_val = float(np.mean(prod_values))
-        if len(bars) > 0:
-            last_bar = bars[-1]
-            bx, bw = last_bar.get_x(), last_bar.get_width()
-            # linea media
-            ax.hlines(y=mean_val, xmin=bx, xmax=bx+bw,
-                      colors="#555555", linewidth=1.0, linestyles=(0, (3, 2)))
-            # testo accanto alla linea, leggermente spostato a destra
-            ax.text(bx + bw + 0.15, mean_val,
-                    "media 12 mesi", ha="left", va="center",
-                    fontsize=7, color="#333333", backgroundcolor="white")
+    
 
 
 
@@ -223,8 +211,12 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
         last_bar = bars[-1]
         bx, bw = last_bar.get_x(), last_bar.get_width()
         ax.hlines(y=atteso_last, xmin=bx, xmax=bx+bw, colors="white", linewidth=1.2, linestyles=(0,(2,2)))
-        ax.text(bx + bw/2, atteso_last + 10, "valore standard del mese", ha="center", va="bottom",
-                color="black", fontsize=6)
+        # etichetta accanto alla linea, a destra del tratteggio
+        label_txt = atteso_label if 'atteso_label' in locals() and atteso_label else "standard mese × kW"
+        ax.text(bx + bw + 0.15, atteso_last,
+                label_txt, ha="left", va="center",
+                fontsize=7, color="#333333", backgroundcolor="white")
+
 
     buf = BytesIO()
     plt.subplots_adjust(bottom=0.24)  # più spazio per le etichette 
