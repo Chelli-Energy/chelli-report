@@ -266,7 +266,7 @@ def main():
 
     # --- ANAGRAFICA ---
     if "anag_df" not in st.session_state:
-        st.session_state.anag_df = load_anagrafica()
+    st.session_state.anag_df = load_anagrafica_gs()
     anag = st.session_state.anag_df.copy()
 
     st.subheader("Seleziona cliente")
