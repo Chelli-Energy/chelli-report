@@ -204,12 +204,14 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
         if len(bars) > 0:
             last_bar = bars[-1]
             bx, bw = last_bar.get_x(), last_bar.get_width()
+            # linea media
             ax.hlines(y=mean_val, xmin=bx, xmax=bx+bw,
-                      colors="#555555", linewidth=1.0, linestyles=(0,(3,2)))
-            # posiziona la scritta sopra l'area del grafico
-            ax.text(bx + bw/2, ymax * 1.18,
-                    "media 12 mesi", ha="center", va="bottom",
-                    fontsize=7, fontweight="bold", color="#333333")
+                      colors="#555555", linewidth=1.0, linestyles=(0, (3, 2)))
+            # testo accanto alla linea, leggermente spostato a destra
+            ax.text(bx + bw + 0.15, mean_val,
+                    "media 12 mesi", ha="left", va="center",
+                    fontsize=7, color="#333333", backgroundcolor="white")
+
 
 
 
