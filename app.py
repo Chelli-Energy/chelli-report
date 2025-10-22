@@ -38,7 +38,8 @@ def check_password():
 # 2) Utility base
 # -------------------------
 ANAGRAFICA_PATH = "schema/anagrafica.csv"
-ANAG_COLS = ["denominazione","indirizzo","provincia","potenza_kw","data_installazione"]
+ANAG_COLS = ["denominazione","indirizzo","provincia","potenza_kw","data_installazione","derating_percent"]
+
 
 def load_anagrafica():
     try:
@@ -399,6 +400,12 @@ def main():
                     coeff_df = load_coeff_gs()
                     last_mm = mese_corrente.split("-")[0] if month_labels else None  # "MM"
                     atteso_last = atteso_for_last_month(prov_sigla, potenza_sel, last_mm, coeff_df)
+
+                    # applica derating percentuale se presente
+                    der = float(row_sel.get("derating_percent", 0) or 0)
+                    if 0 < der <= 99 and atteso_last > 0:
+                        atteso_last = atteso_last * (1 - der / 100.0)
+                    
         except Exception as e:
             st.warning(f"Valore atteso non calcolabile: {e}")
 
