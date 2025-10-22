@@ -57,12 +57,28 @@ def to_download_button(df: pd.DataFrame, filename: str, label: str):
 
 def gs_client():
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-    info_str = st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"]
-    info = json.loads(info_str)
+    info_raw = st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"]
+
+    # Accetta sia dict che stringa JSON
+    if isinstance(info_raw, dict):
+        info = dict(info_raw)
+    else:
+        try:
+            info = json.loads(info_raw)
+        except Exception:
+            # fallback: stringa tipo Python dict o con caratteri strani
+            import ast
+            info = ast.literal_eval(info_raw)
+
+    # Normalizza private_key: \\n -> \n
+    if "private_key" in info and isinstance(info["private_key"], str):
+        info["private_key"] = info["private_key"].replace("\\n", "\n")
+
     creds = Credentials.from_service_account_info(info, scopes=scopes)
     gc = gspread.authorize(creds)
     sh = gc.open_by_key(st.secrets["GSHEET_ID"])
     return sh
+
 
 def sheet_to_df(ws):
     rows = ws.get_all_records()
