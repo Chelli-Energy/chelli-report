@@ -271,7 +271,7 @@ def main():
 
     st.subheader("Seleziona cliente")
     if anag.empty or "denominazione" not in anag.columns:
-    st.warning("Nessun cliente presente.")
+        st.warning("Nessun cliente presente.")
     selected = None
     else:
         denoms = sorted([d for d in anag["denominazione"].dropna().astype(str).unique() if d.strip()])
