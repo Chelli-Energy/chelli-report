@@ -180,7 +180,9 @@ MESE_COL = {
     "07":"luglio","08":"agosto","09":"settembre","10":"ottobre","11":"novembre","12":"dicembre"
 }
 
-def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_class="verde"):
+def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_class="verde", atteso_label=None):
+    ...
+
     """Ritorna bytes PNG del grafico a barre."""
     fig, ax = plt.subplots(figsize=(7.3, 4.3))
     x = np.arange(len(month_labels))
