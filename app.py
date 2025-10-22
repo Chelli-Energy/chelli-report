@@ -293,6 +293,8 @@ def main():
             with c2:
                 st.markdown(f"**Potenza (kW):** {row.get('potenza_kw','')}")
                 st.markdown(f"**Data installazione:** {row.get('data_installazione','')}")
+                st.markdown(f"**Derating (%):** {row.get('derating_percent', 0)}")
+
 
     # --- Aggiungi nuovo cliente ---
     st.divider()
