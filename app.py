@@ -59,25 +59,37 @@ def gs_client():
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
     info_raw = st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"]
 
-    # Accetta sia dict che stringa JSON
+    # Accetta sia dict (TOML table) che stringa JSON
     if isinstance(info_raw, dict):
         info = dict(info_raw)
     else:
+        import json, ast
         try:
             info = json.loads(info_raw)
         except Exception:
-            # fallback: stringa tipo Python dict o con caratteri strani
-            import ast
             info = ast.literal_eval(info_raw)
 
-    # Normalizza private_key: \\n -> \n
-    if "private_key" in info and isinstance(info["private_key"], str):
-        info["private_key"] = info["private_key"].replace("\\n", "\n")
+    # Normalizza private_key:
+    # - se contiene "\\n" -> converte in veri "\n"
+    # - se è multiline (TOML table) -> lascia com'è
+    pk = info.get("private_key", "")
+    if "\\n" in pk:
+        pk = pk.replace("\\n", "\n")
+    info["private_key"] = pk
 
+    # Controlli minimi prima di creare le credenziali
+    if not pk or "BEGIN PRIVATE KEY" not in pk or "END PRIVATE KEY" not in pk:
+        raise ValueError("private_key non valida: manca BEGIN/END PRIVATE KEY")
+
+    if not info.get("client_email"):
+        raise ValueError("client_email mancante nei secrets")
+
+    from google.oauth2.service_account import Credentials
     creds = Credentials.from_service_account_info(info, scopes=scopes)
     gc = gspread.authorize(creds)
     sh = gc.open_by_key(st.secrets["GSHEET_ID"])
     return sh
+
 
 
 def sheet_to_df(ws):
