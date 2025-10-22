@@ -342,6 +342,7 @@ if submitted:
             df = xls[first_sheet].copy()
 
 
+
         prod_col = None
         for c in df.columns:
             cs = str(c)
