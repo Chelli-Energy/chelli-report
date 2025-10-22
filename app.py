@@ -150,8 +150,8 @@ def load_coeff_gs():
                       .pipe(pd.to_numeric, errors="coerce")
                       .fillna(0.0)
             )
-    else:
-        df[col] = 0.0
+        else:
+            df[col] = 0.0
 
     return df
 
@@ -202,11 +202,6 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     ax.set_xticks(x, month_labels, rotation=45, ha="right", fontsize=9)
     ymax = max(prod_values) if prod_values else 1
     ax.set_ylim(0, ymax*1.2)
-
-    
-
-
-
 
     for b in bars:
         h = b.get_height()
