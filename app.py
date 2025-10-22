@@ -265,9 +265,9 @@ def main():
     st.caption("Step: Anagrafica clienti — selezione, caricamento e report")
 
     # --- ANAGRAFICA ---
-        if "anag_df" not in st.session_state:
+    if "anag_df" not in st.session_state:
         st.session_state.anag_df = load_anagrafica_gs()
-        anag = st.session_state.anag_df.copy()
+    anag = st.session_state.anag_df.copy()
 
         st.subheader("Seleziona cliente")
         if anag.empty or "denominazione" not in anag.columns:
