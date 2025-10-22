@@ -305,13 +305,20 @@ def main():
         st.warning("Nessun cliente presente.")
         selected = None
     else:
-        denoms = sorted([d for d in anag["denominazione"].dropna().astype(str).unique() if d.strip()])
-        selected = st.selectbox(
-            "Denominazione",
-            options=denoms,
-            index=0 if denoms else None,
-            placeholder="Scegli..."
+        denoms = ["-- Seleziona cliente --"] + sorted(
+            [d for d in anag["denominazione"].dropna().astype(str).unique() if d.strip()]
         )
+        selected = st.selectbox(
+            "Seleziona cliente",
+            options=denoms,
+            index=0,
+            label_visibility="collapsed"
+        )
+
+        if selected == "-- Seleziona cliente --":
+            st.info("Seleziona un cliente dall’elenco per procedere.")
+            selected = None
+
         if selected:
             row = anag[anag["denominazione"] == selected].iloc[0]
             c1, c2 = st.columns(2)
