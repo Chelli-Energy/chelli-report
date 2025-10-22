@@ -330,7 +330,7 @@ if submitted:
     st.subheader("File Excel 12 mesi — caricamento e lettura")
 
     up = st.file_uploader("Carica il file Excel annuale (.xlsx)", type=["xlsx"])
-        if up is None:
+    if up is None:
         return
 
     try:
