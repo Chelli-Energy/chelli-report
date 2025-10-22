@@ -210,6 +210,7 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
                 color="black", fontsize=6)
 
     buf = BytesIO()
+    plt.subplots_adjust(bottom=0.24)  # più spazio per le etichette 
     plt.tight_layout()
     fig.savefig(buf, format="PNG", dpi=300)
     plt.close(fig)
