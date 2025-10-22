@@ -143,13 +143,13 @@ def load_coeff_gs():
           .map(lambda x: PROVINCE_MAP.get(x, x))
     )
     for col in ["gennaio","febbraio","marzo","aprile","maggio","giugno",
-            "luglio","agosto","settembre","ottobre","novembre","dicembre"]:
-    if col in df.columns:
-        df[col] = (
-            df[col].astype(str).str.replace(",", ".", regex=False)
-                  .pipe(pd.to_numeric, errors="coerce")
-                  .fillna(0.0)
-        )
+                "luglio","agosto","settembre","ottobre","novembre","dicembre"]:
+        if col in df.columns:
+            df[col] = (
+                df[col].astype(str).str.replace(",", ".", regex=False)
+                      .pipe(pd.to_numeric, errors="coerce")
+                      .fillna(0.0)
+            )
     else:
         df[col] = 0.0
 
