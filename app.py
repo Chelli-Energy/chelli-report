@@ -269,10 +269,10 @@ def main():
         st.session_state.anag_df = load_anagrafica_gs()
     anag = st.session_state.anag_df.copy()
 
-        st.subheader("Seleziona cliente")
-        if anag.empty or "denominazione" not in anag.columns:
-        st.warning("Nessun cliente presente.")
-        selected = None
+    st.subheader("Seleziona cliente")
+    if anag.empty or "denominazione" not in anag.columns:
+    st.warning("Nessun cliente presente.")
+    selected = None
     else:
         denoms = sorted([d for d in anag["denominazione"].dropna().astype(str).unique() if d.strip()])
         selected = st.selectbox("Denominazione", options=denoms, index=0 if denoms else None, placeholder="Scegli...")
