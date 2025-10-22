@@ -143,11 +143,16 @@ def load_coeff_gs():
           .map(lambda x: PROVINCE_MAP.get(x, x))
     )
     for col in ["gennaio","febbraio","marzo","aprile","maggio","giugno",
-                "luglio","agosto","settembre","ottobre","novembre","dicembre"]:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
-        else:
-            df[col] = 0.0
+            "luglio","agosto","settembre","ottobre","novembre","dicembre"]:
+    if col in df.columns:
+        df[col] = (
+            df[col].astype(str).str.replace(",", ".", regex=False)
+                  .pipe(pd.to_numeric, errors="coerce")
+                  .fillna(0.0)
+        )
+    else:
+        df[col] = 0.0
+
     return df
 
 def atteso_for_last_month(prov_sigla: str, potenza_kw: float, last_mm: str, coeff_df: pd.DataFrame) -> float:
