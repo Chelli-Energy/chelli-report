@@ -304,7 +304,7 @@ def main():
             potenza_kw = st.number_input("Potenza (kW)*", min_value=0.1, step=0.1, value=5.0)
             data_installazione = st.date_input("Data installazione*", value=date.today())
         submitted = st.form_submit_button("Aggiungi all’elenco")
-if submitted:
+    if submitted:
     if not denominazione or not indirizzo or not provincia:
         st.error("Compila i campi obbligatori contrassegnati con *")
     else:
