@@ -482,9 +482,22 @@ def main():
             last_class = "verde"
 
         # Grafico
+        mesi_it = {"01":"Gennaio","02":"Febbraio","03":"Marzo","04":"Aprile","05":"Maggio","06":"Giugno",
+                   "07":"Luglio","08":"Agosto","09":"Settembre","10":"Ottobre","11":"Novembre","12":"Dicembre"}
+        atteso_label = None
+        if atteso_last and selected:
+            mm = mese_corrente.split("-")[0]
+            mese_it = mesi_it.get(mm, mm)
+            prov_lbl = str(row_sel.get("provincia","")).upper()
+            kwp = float(row_sel.get("potenza_kw", 0) or 0)
+            # esempio: "standard Settembre (FI) × 5.0 kW = 645.3 kWh"
+            atteso_label = f"standard {mese_it} ({prov_lbl}) × {kwp:.1f} kW = {atteso_last:.1f} kWh"
+
         img_bytes = build_monthly_chart(month_labels, prod_values,
-                                        atteso_last if atteso_last > 0 else None,
-                                        last_class)
+                                atteso_last if atteso_last > 0 else None,
+                                last_class,
+                                atteso_label=atteso_label)
+
 
         # Tabella
         table_rows = []
