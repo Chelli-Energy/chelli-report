@@ -316,7 +316,7 @@ def main():
         )
 
         if selected == "-- Seleziona cliente --":
-            st.info("Seleziona un cliente dall’elenco per procedere.")
+            st.info("Seleziona dall’elenco o aggiungi un nuovo cliente per procedere.")
             selected = None
 
         if selected:
