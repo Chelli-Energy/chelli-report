@@ -242,7 +242,7 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
         y -= 0.42*cm
 
     # Grafico
-    chart_w = page_w - LM - RM; chart_h = 8.0*cm
+    chart_w = page_w - LM - RM; chart_h = 7.0*cm
     chart_y = y - 0.7*cm - chart_h
     c.drawImage(chart_img, LM, chart_y, width=chart_w, height=chart_h, preserveAspectRatio=True, mask='auto')
 
