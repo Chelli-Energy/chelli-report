@@ -1,3 +1,7 @@
+Ecco `app.py` corretto. Ho: rimosso ogni input manuale dell’atteso, calcolato `atteso_last` da Google Sheets, corretto la classificazione secondo le soglie richieste, sistemato la lettura delle credenziali con `json.loads`, eliminato il reset a `0.0` prima del PDF.
+
+```python
+import json
 import streamlit as st
 import pandas as pd
 from io import BytesIO
@@ -12,7 +16,6 @@ from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib.utils import ImageReader
-
 
 # -------------------------
 # 1) Gate con password unica
@@ -33,7 +36,6 @@ def check_password():
         else:
             st.error("Password errata")
     st.stop()
-
 
 # -------------------------
 # 2) Utility base
@@ -57,8 +59,9 @@ def to_download_button(df: pd.DataFrame, filename: str, label: str):
 
 def gs_client():
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-    info = st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"]
-    creds = Credentials.from_service_account_info(eval(info), scopes=scopes)
+    info_str = st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"]
+    info = json.loads(info_str)
+    creds = Credentials.from_service_account_info(info, scopes=scopes)
     gc = gspread.authorize(creds)
     sh = gc.open_by_key(st.secrets["GSHEET_ID"])
     return sh
@@ -80,10 +83,8 @@ def load_anagrafica_gs():
     try:
         sh = gs_client(); ws = sh.worksheet("anagrafica")
         df = sheet_to_df(ws)
-        # garantisce colonne
         for c in ANAG_COLS:
             if c not in df.columns: df[c] = ""
-        # normalizza provincia -> sigla
         df["provincia"] = (
             df["provincia"].astype(str).str.strip().str.upper()
               .map(lambda x: PROVINCE_MAP.get(x, x))
@@ -102,12 +103,10 @@ def load_coeff_gs():
     """Legge il foglio 'province_coeff' e forza i mesi a numerico."""
     sh = gs_client(); ws = sh.worksheet("province_coeff")
     df = sheet_to_df(ws)
-    # normalizza provincia -> sigla
     df["provincia"] = (
         df["provincia"].astype(str).str.strip().str.upper()
           .map(lambda x: PROVINCE_MAP.get(x, x))
     )
-    # forza numerico per tutti i mesi
     for col in ["gennaio","febbraio","marzo","aprile","maggio","giugno",
                 "luglio","agosto","settembre","ottobre","novembre","dicembre"]:
         if col in df.columns:
@@ -117,7 +116,7 @@ def load_coeff_gs():
     return df
 
 def atteso_for_last_month(prov_sigla: str, potenza_kw: float, last_mm: str, coeff_df: pd.DataFrame) -> float:
-    """Restituisce kWh attesi del mese corrente: coeff(prov, mese)*potenza."""
+    """kWh attesi del mese corrente: coeff(prov, mese)*potenza."""
     mese_col = MESE_COL.get(last_mm, None)
     if not mese_col: return 0.0
     row = coeff_df[coeff_df["provincia"] == prov_sigla]
@@ -126,7 +125,7 @@ def atteso_for_last_month(prov_sigla: str, potenza_kw: float, last_mm: str, coef
     return coeff * float(potenza_kw or 0.0)
 
 # -------------------------
-# 2bis) Funzioni helper: grafico e PDF
+# 2bis) Helper grafico e PDF
 # -------------------------
 GREEN_MAIN = "#006633"
 ORANGE = "#F9A825"
@@ -145,7 +144,6 @@ MESE_COL = {
     "01":"gennaio","02":"febbraio","03":"marzo","04":"aprile","05":"maggio","06":"giugno",
     "07":"luglio","08":"agosto","09":"settembre","10":"ottobre","11":"novembre","12":"dicembre"
 }
-
 
 def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_class="verde"):
     """Ritorna bytes PNG del grafico a barre."""
@@ -182,7 +180,6 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     plt.close(fig)
     buf.seek(0)
     return buf.getvalue()
-
 
 def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_class, chart_img):
     """Crea PDF A4 completo."""
@@ -256,7 +253,6 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
 
     c.showPage(); c.save()
 
-
 # -------------------------
 # 3) App
 # -------------------------
@@ -291,7 +287,7 @@ def main():
                 st.markdown(f"**Potenza (kW):** {row.get('potenza_kw','')}")
                 st.markdown(f"**Data installazione:** {row.get('data_installazione','')}")
 
-    # --- Aggiungi nuovo cliente (ripristino) ---
+    # --- Aggiungi nuovo cliente ---
     st.divider()
     st.subheader("Aggiungi nuovo cliente")
     with st.form("nuovo_cliente"):
@@ -322,7 +318,6 @@ def main():
                 except Exception as e:
                     st.error(f"Errore salvataggio su Google Sheets: {e}")
 
-
     st.subheader("Esporta anagrafica aggiornata")
     to_download_button(st.session_state.anag_df, "anagrafica_aggiornata.csv", "Scarica CSV aggiornato")
 
@@ -340,8 +335,6 @@ def main():
         else:
             first_sheet = next(iter(xls))
             df = xls[first_sheet].copy()
-
-
 
         prod_col = None
         for c in df.columns:
@@ -384,13 +377,23 @@ def main():
             "Rete_prelevata_kWh":"Rete prelevata (kWh)"
         })[["Mese","Produzione (kWh)","Consumo (kWh)","Autoconsumo (kWh)","Rete immessa (kWh)","Rete prelevata (kWh)"]]
 
-        # mese corrente (MM-YYYY) e valori produzione
+        # colonne numeriche
+        num_cols = [
+            "Produzione (kWh)",
+            "Consumo (kWh)",
+            "Autoconsumo (kWh)",
+            "Rete immessa (kWh)",
+            "Rete prelevata (kWh)"
+        ]
+        for c in num_cols:
+            show[c] = pd.to_numeric(show[c], errors="coerce").fillna(0.0)
+
+        # --- calcolo atteso_last da GS (province_coeff) ---
         month_labels = show["Mese"].tolist()
         prod_values  = show["Produzione (kWh)"].astype(float).tolist()
         mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
         prod_last = float(prod_values[-1]) if prod_values else 0.0
 
-        # calcolo atteso_last da GS (province_coeff)
         atteso_last = 0.0
         try:
             if selected:
@@ -404,46 +407,24 @@ def main():
         except Exception as e:
             st.warning(f"Valore atteso non calcolabile: {e}")
 
-        
-        
-        # colonne numeriche
-        num_cols = [
-            "Produzione (kWh)",
-            "Consumo (kWh)",
-            "Autoconsumo (kWh)",
-            "Rete immessa (kWh)",
-            "Rete prelevata (kWh)"
-        ]
-        for c in num_cols:
-            show[c] = pd.to_numeric(show[c], errors="coerce").fillna(0.0)
-
-
-
-
-
-        # ---------------------------
-        # PDF
-        # ---------------------------
-        st.subheader("PDF")
-        atteso_last = 0.0  # verrà impostato automaticamente in futuro
-        month_labels = show["Mese"].tolist()
-        prod_values  = show["Produzione (kWh)"].astype(float).tolist()
-        mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
-        prod_last = float(prod_values[-1]) if prod_values else 0.0
-
+        # --- classificazione soglie richieste ---
         if atteso_last > 0:
-            ratio = prod_last / atteso_last
-            if ratio >= 0.90: last_class = "verde"
-            elif ratio >= 0.80: last_class = "arancione"
-            else: last_class = "rosso"
+            delta = (prod_last - atteso_last) / atteso_last  # scostamento %
+            if delta >= -0.10:
+                last_class = "verde"
+            elif -0.20 <= delta < -0.10:
+                last_class = "arancione"
+            else:
+                last_class = "rosso"
         else:
             last_class = "verde"
 
+        # Grafico
         img_bytes = build_monthly_chart(month_labels, prod_values,
                                         atteso_last if atteso_last > 0 else None,
                                         last_class)
-        
 
+        # Tabella
         table_rows = []
         for i, r in show.iterrows():
             p    = float(r["Produzione (kWh)"])
@@ -459,7 +440,7 @@ def main():
             table_rows.append([r["Mese"], f"{p:.1f}", f"{cons:.1f}", f"{aut:.1f}",
                                f"{imm:.1f}", f"{prel:.1f}", att, scost])
 
-
+        # Dati anagrafici nel PDF
         if selected:
             row = anag[anag["denominazione"] == selected].iloc[0]
             anag_dict = {
@@ -479,6 +460,7 @@ def main():
         mm, yyyy = (mese_corrente.split("-") + ["",""])[:2]
         titolo_esteso = f"{mesi_it.get(mm, mm)} {yyyy}"
 
+        # PDF
         pdf_buf = BytesIO()
         compose_pdf(
             path_out=pdf_buf,
@@ -498,7 +480,7 @@ def main():
     except Exception as e:
         st.error(f"Errore lettura Excel: {e}")
 
-
 if __name__ == "__main__":
     if check_password():
         main()
+```
