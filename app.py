@@ -247,7 +247,7 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
     c.drawImage(chart_img, LM, chart_y, width=chart_w, height=chart_h, preserveAspectRatio=True, mask='auto')
 
     # Tabella
-    table_y = chart_y - 1.4*cm - 5.2*cm
+    table_y = chart_y - 2.6*cm - 5.2*cm
     hdr = ["Mese","Produzione\nkWh","Consumo\nkWh","Autoconsumo\nkWh","Rete\nimmessa","Rete\nprelevata","Atteso\nkWh","Scost.\n%"]
     data_table = [hdr] + table_rows
     col_widths = [1.6*cm, 1.8*cm, 1.8*cm, 2.0*cm, 1.8*cm, 2.0*cm, 1.8*cm, 1.6*cm]
