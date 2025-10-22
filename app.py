@@ -383,24 +383,24 @@ if submitted:
         })[["Mese","Produzione (kWh)","Consumo (kWh)","Autoconsumo (kWh)","Rete immessa (kWh)","Rete prelevata (kWh)"]]
 
         # mese corrente (MM-YYYY) e valori produzione
-month_labels = show["Mese"].tolist()
-prod_values  = show["Produzione (kWh)"].astype(float).tolist()
-mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
-prod_last = float(prod_values[-1]) if prod_values else 0.0
+        month_labels = show["Mese"].tolist()
+        prod_values  = show["Produzione (kWh)"].astype(float).tolist()
+        mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
+        prod_last = float(prod_values[-1]) if prod_values else 0.0
 
-# calcolo atteso_last da GS (province_coeff)
-atteso_last = 0.0
-try:
-    if selected:
-        row_sel = st.session_state.anag_df[st.session_state.anag_df["denominazione"] == selected].iloc[0]
-        prov_sigla = str(row_sel.get("provincia","")).strip().upper()
-        potenza_sel = float(row_sel.get("potenza_kw", 0) or 0)
-        if prov_sigla and potenza_sel > 0:
-            coeff_df = load_coeff_gs()
-            last_mm = mese_corrente.split("-")[0] if month_labels else None  # "MM"
-            atteso_last = atteso_for_last_month(prov_sigla, potenza_sel, last_mm, coeff_df)
-except Exception as e:
-    st.warning(f"Valore atteso non calcolabile: {e}")
+        # calcolo atteso_last da GS (province_coeff)
+        atteso_last = 0.0
+        try:
+            if selected:
+                row_sel = st.session_state.anag_df[st.session_state.anag_df["denominazione"] == selected].iloc[0]
+                prov_sigla = str(row_sel.get("provincia","")).strip().upper()
+                potenza_sel = float(row_sel.get("potenza_kw", 0) or 0)
+                if prov_sigla and potenza_sel > 0:
+                    coeff_df = load_coeff_gs()
+                    last_mm = mese_corrente.split("-")[0] if month_labels else None  # "MM"
+                    atteso_last = atteso_for_last_month(prov_sigla, potenza_sel, last_mm, coeff_df)
+        except Exception as e:
+            st.warning(f"Valore atteso non calcolabile: {e}")
 
         
         
