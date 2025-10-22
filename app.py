@@ -1,6 +1,3 @@
-Ecco `app.py` corretto. Ho: rimosso ogni input manuale dell’atteso, calcolato `atteso_last` da Google Sheets, corretto la classificazione secondo le soglie richieste, sistemato la lettura delle credenziali con `json.loads`, eliminato il reset a `0.0` prima del PDF.
-
-```python
 import json
 import streamlit as st
 import pandas as pd
@@ -409,7 +406,7 @@ def main():
 
         # --- classificazione soglie richieste ---
         if atteso_last > 0:
-            delta = (prod_last - atteso_last) / atteso_last  # scostamento %
+            delta = (prod_last - atteso_last) / atteso_last
             if delta >= -0.10:
                 last_class = "verde"
             elif -0.20 <= delta < -0.10:
@@ -483,4 +480,3 @@ def main():
 if __name__ == "__main__":
     if check_password():
         main()
-```
