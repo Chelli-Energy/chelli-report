@@ -315,8 +315,6 @@ def main():
                 except Exception as e:
                     st.error(f"Errore salvataggio su Google Sheets: {e}")
 
-    st.subheader("Esporta anagrafica aggiornata")
-    to_download_button(st.session_state.anag_df, "anagrafica_aggiornata.csv", "Scarica CSV aggiornato")
 
     st.divider()
     st.subheader("File Excel 12 mesi — caricamento e lettura")
