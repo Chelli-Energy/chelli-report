@@ -308,6 +308,8 @@ def main():
         with c2:
             potenza_kw = st.number_input("Potenza (kW)*", min_value=0.1, step=0.1, value=5.0)
             data_installazione = st.date_input("Data installazione*", value=date.today())
+            derating_percent = st.number_input("Derating impianto (%)", min_value=0, max_value=99, value=0, step=1)
+
         submitted = st.form_submit_button("Aggiungi all’elenco")
         if submitted:
             if not denominazione or not indirizzo or not provincia:
@@ -319,6 +321,8 @@ def main():
                     "provincia": PROVINCE_MAP.get(provincia.strip().upper(), provincia.strip().upper()),
                     "potenza_kw": float(potenza_kw),
                     "data_installazione": data_installazione.strftime("%d/%m/%Y"),
+                    "derating_percent": int(derating_percent),
+
                 }
                 try:
                     append_anagrafica_gs(new_row)
