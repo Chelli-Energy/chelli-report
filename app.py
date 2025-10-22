@@ -83,11 +83,20 @@ def load_anagrafica_gs():
         df = sheet_to_df(ws)
         for c in ANAG_COLS:
             if c not in df.columns: df[c] = ""
+
+        # normalizza provincia -> sigla
         df["provincia"] = (
             df["provincia"].astype(str).str.strip().str.upper()
-              .map(lambda x: PROVINCE_MAP.get(x, x))
+                .map(lambda x: PROVINCE_MAP.get(x, x))
         )
+
+        # normalizza derating_percent (0–99 int)
+        if "derating_percent" not in df.columns: df["derating_percent"] = ""
+        df["derating_percent"] = pd.to_numeric(df["derating_percent"], errors="coerce") \
+            .clip(lower=0, upper=99).fillna(0).astype(int)
+
         return df[ANAG_COLS]
+
     except Exception as e:
         st.error(f"Errore lettura anagrafica (GS): {e}")
         return pd.DataFrame(columns=ANAG_COLS)
