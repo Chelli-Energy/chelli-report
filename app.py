@@ -272,10 +272,15 @@ def main():
     st.subheader("Seleziona cliente")
     if anag.empty or "denominazione" not in anag.columns:
         st.warning("Nessun cliente presente.")
-    selected = None
+        selected = None
     else:
         denoms = sorted([d for d in anag["denominazione"].dropna().astype(str).unique() if d.strip()])
-        selected = st.selectbox("Denominazione", options=denoms, index=0 if denoms else None, placeholder="Scegli...")
+        selected = st.selectbox(
+            "Denominazione",
+            options=denoms,
+            index=0 if denoms else None,
+            placeholder="Scegli..."
+        )
         if selected:
             row = anag[anag["denominazione"] == selected].iloc[0]
             c1, c2 = st.columns(2)
@@ -285,7 +290,7 @@ def main():
             with c2:
                 st.markdown(f"**Potenza (kW):** {row.get('potenza_kw','')}")
                 st.markdown(f"**Data installazione:** {row.get('data_installazione','')}")
-                
+
     # --- Aggiungi nuovo cliente (ripristino) ---
     st.divider()
     st.subheader("Aggiungi nuovo cliente")
