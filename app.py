@@ -143,15 +143,20 @@ def load_coeff_gs():
           .map(lambda x: PROVINCE_MAP.get(x, x))
     )
     for col in ["gennaio","febbraio","marzo","aprile","maggio","giugno",
-                "luglio","agosto","settembre","ottobre","novembre","dicembre"]:
+            "luglio","agosto","settembre","ottobre","novembre","dicembre"]:
         if col in df.columns:
-            df[col] = (
-                df[col].astype(str).str.replace(",", ".", regex=False)
-                      .pipe(pd.to_numeric, errors="coerce")
-                      .fillna(0.0)
-            )
-        else:
-            df[col] = 0.0
+            s = df[col].astype(str).str.strip()
+    
+            # rimuovi separatori migliaia, gestisci decimale europeo
+            s = (s.str.replace("\u00A0", "", regex=False)  # no-break space
+                   .str.replace(" ", "", regex=False)
+                   .str.replace(".", "", regex=False)      # toglie migliaia tipo 1.234,56
+                   .str.replace(",", ".", regex=False))    # virgola -> punto
+
+        df[col] = pd.to_numeric(s, errors="coerce").fillna(0.0)
+    else:
+        df[col] = 0.0
+
 
     return df
 
@@ -163,6 +168,22 @@ def atteso_for_last_month(prov_sigla: str, potenza_kw: float, last_mm: str, coef
     if row.empty: return 0.0
     coeff = float(row.iloc[0][mese_col])  # kWh per kW
     return coeff * float(potenza_kw or 0.0)
+
+    # DEBUG: verifica coefficiente usato (prima del derating)
+    try:
+        mese_col = MESE_COL.get(last_mm)
+        coeff_series = coeff_df.loc[coeff_df["provincia"] == prov_sigla, mese_col]
+        coeff_val = float(coeff_series.iloc[0]) if not coeff_series.empty else 0.0
+    except Exception:
+        coeff_val = 0.0
+    
+    st.write({
+        "debug_coeff": coeff_val,                 # atteso kWh per kW del mese
+        "prov": prov_sigla,
+        "mese": MESE_COL.get(last_mm),
+        "kW": potenza_sel,
+        "atteso_pre_derating": round(atteso_last, 2)
+    })
 
 # -------------------------
 # 2bis) Helper grafico e PDF
