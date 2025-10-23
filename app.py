@@ -273,7 +273,7 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
     c.drawImage(chart_img, LM, chart_y, width=chart_w, height=chart_h, preserveAspectRatio=True, mask='auto')
 
     # Tabella + Caption con posizionamento sicuro
-    hdr = ["Mese","Produzione kWh","Consumo kWh","Autoconsumo kWh","Rete immessa kWh","Rete prelevata kWh","Atteso kWh","Scost. %"]
+    hdr = ["Mese","Produzione kWh","Consumo kWh","Autoconsumo kWh","Rete immessa kWh","Rete prelevata kWh","Atteso kWh*","Scost. %"]
     data_table = [hdr] + table_rows
     
     content_w = page_w - LM - RM
@@ -282,7 +282,7 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
     
     tbl = Table(data_table, colWidths=col_widths)
     ts = TableStyle([
-        ('FONT', (0,0), (-1,0), 'Helvetica-Bold', 8),
+        ('FONT', (0,0), (-1,0), 'Helvetica-Bold', 7),
         ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor(TXT_DARK)),
         ('FONT', (0,1), (-1,-1), 'Helvetica', 8),
         ('ALIGN', (1,1), (-1,-1), 'RIGHT'),
