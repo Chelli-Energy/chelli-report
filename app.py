@@ -444,16 +444,17 @@ def main():
 
         # Aggregazione mensile
         # Normalizza valori numerici con virgole o punti
+        def _to_num(x):
+            s = str(x).strip().replace("−", "-")  # segno meno Unicode
+            if s in ("", "-", "nan", "None"): 
+                return 0
+            if "," in s:
+                s = s.replace(".", "").replace(",", ".")  # rimuovi separatore migliaia, fissa decimale
+            return pd.to_numeric(s, errors="coerce")
+        
         for col in ["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]:
-            df[col] = (
-                df[col]
-                .astype(str)
-                .str.replace(",", ".", regex=False)
-                .str.replace(" ", "", regex=False)
-                .replace("-", "0")
-            )
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
-     
+            df[col] = df[col].map(_to_num).fillna(0)
+
         df["mese"] = df["Data e ora"].dt.to_period("M")
         agg = (df.groupby("mese")[["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]]
                  .sum().reset_index())
