@@ -504,7 +504,7 @@ def main():
 
         if st.button("Spedisci PDF", key="send_pdf"):
             try:
-                cliente_email = current_client["email"]
+                cliente_email = row.get("email", "")
                 send_pdf_via_email(pdf_buf.getvalue(), pdf_name, cliente_email)
                 st.success("Email inviata.")
             except Exception as e:
