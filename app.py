@@ -465,6 +465,13 @@ def main():
         for c in num_cols:
             show[c] = pd.to_numeric(show[c], errors="coerce").fillna(0.0)
 
+        # prepara etichette e mese corrente PRIMA del calcolo atteso
+month_labels = show["Mese"].tolist()
+prod_values  = show["Produzione (kWh)"].astype(float).tolist()
+mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
+prod_last = float(prod_values[-1]) if prod_values else 0.0
+last_mm = mese_corrente.split("-")[0] if month_labels else None  # "MM" o None
+
         # --- calcolo atteso_last da GS (province_coeff) ---
         atteso_last = 0.0
         try:
@@ -472,14 +479,13 @@ def main():
                 row_sel = st.session_state.anag_df[st.session_state.anag_df["denominazione"] == selected].iloc[0]
                 prov_sigla = str(row_sel.get("provincia","")).strip().upper()
                 potenza_sel = float(row_sel.get("potenza_kw", 0) or 0)
-                if prov_sigla and potenza_sel > 0:
+                if prov_sigla and potenza_sel > 0 and last_mm:
                     coeff_df = load_coeff_gs()
-                    last_mm = mese_corrente.split("-")[0] if month_labels else None  # "MM"
         
                     # atteso prima del derating
                     atteso_last = atteso_for_last_month(prov_sigla, potenza_sel, last_mm, coeff_df)
         
-                    # DEBUG: mostra coefficiente usato e atteso calcolato
+                    # DEBUG: coeff realmente usato
                     mese_col = MESE_COL.get(last_mm)
                     row_coeff = coeff_df[coeff_df["provincia"] == prov_sigla]
                     coeff_val = float(row_coeff.iloc[0][mese_col]) if (not row_coeff.empty and mese_col in row_coeff.columns) else 0.0
@@ -492,11 +498,10 @@ def main():
                         "atteso_pre_derating(kWh)": round(atteso_last, 2)
                     })
         
-                    # applica derating percentuale se presente
+                    # derating
                     der = float(row_sel.get("derating_percent", 0) or 0)
                     if 0 < der <= 99 and atteso_last > 0:
                         atteso_last = atteso_last * (1 - der / 100.0)
-        
         except Exception as e:
             st.warning(f"Valore atteso non calcolabile: {e}")
 
