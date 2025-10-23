@@ -443,24 +443,32 @@ def main():
         df["Rete_prelevata_kWh"] = df.get("Energia prelevata", 0) / 1000.0
 
         # Aggregazione mensile
-        # Normalizza valori numerici con virgole o punti
+        import re
+        
         def _to_num(x):
-            s = str(x).strip().replace("−", "-")  # segno meno Unicode
-            if s in ("", "-", "nan", "None"): 
-                return 0
+            s = str(x).strip().replace("−", "-")  # meno Unicode
+            if s in ("", "-", "nan", "None", "NULL"): 
+                return 0.0
+            # togli caratteri non numerici comuni (spazi, NBSP, tab)
+            s = re.sub(r"[^\d,.\-]", "", s)
+            # se c'è la virgola, tratta la virgola come decimale ed elimina i punti migliaia
             if "," in s:
-                s = s.replace(".", "").replace(",", ".")  # rimuovi separatore migliaia, fissa decimale
+                s = s.replace(".", "").replace(",", ".")
             return pd.to_numeric(s, errors="coerce")
         
         for col in ["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]:
-            df[col] = df[col].map(_to_num).fillna(0)
-
+            df[col] = df[col].map(_to_num).fillna(0.0).astype(float)
+        
         df["mese"] = df["Data e ora"].dt.to_period("M")
-        agg = (df.groupby("mese")[["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]]
-                 .sum().reset_index())
+        agg = (
+            df.groupby("mese")[["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]]
+              .sum()
+              .reset_index()
+        )
         agg["mese"] = agg["mese"].astype(str)
         agg["Mese"] = agg["mese"].apply(lambda s: f"{s.split('-')[1]}-{s.split('-')[0]}")
         agg = agg.sort_values("mese").tail(12).reset_index(drop=True)
+
 
         show = agg.rename(columns={
             "Produzione_kWh":"Produzione (kWh)",
