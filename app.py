@@ -493,6 +493,16 @@ def main():
             # esempio: "standard Settembre (FI) × 5.0 kW = 645.3 kWh"
             atteso_label = f"standard {mese_it} ({prov_lbl}) × {kwp:.1f} kW = {atteso_last:.1f} kWh"
 
+        st.write({
+            "provincia": prov_sigla,
+            "mese": last_mm,
+            "potenza_kw": potenza_sel,
+            "atteso_last": round(atteso_last, 2)
+        })
+
+
+
+        
         img_bytes = build_monthly_chart(month_labels, prod_values,
                                 atteso_last if atteso_last > 0 else None,
                                 last_class,
