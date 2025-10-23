@@ -455,35 +455,47 @@ def main():
         })[["Mese","Produzione (kWh)","Consumo (kWh)","Autoconsumo (kWh)","Rete immessa (kWh)","Rete prelevata (kWh)"]]
 
         # colonne numeriche
-        num_cols = [
-            "Produzione (kWh)",
-            "Consumo (kWh)",
-            "Autoconsumo (kWh)",
-            "Rete immessa (kWh)",
-            "Rete prelevata (kWh)"
-        ]
+        num_cols = ["Produzione (kWh)","Consumo (kWh)","Autoconsumo (kWh)","Rete immessa (kWh)","Rete prelevata (kWh)"]
         for c in num_cols:
             show[c] = pd.to_numeric(show[c], errors="coerce").fillna(0.0)
 
-    # prepara etichette e mese corrente PRIMA del calcolo atteso
-    month_labels = show["Mese"].tolist()
-    prod_values  = show["Produzione (kWh)"].astype(float).tolist()
-    mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
-    prod_last = float(prod_values[-1]) if prod_values else 0.0
-    last_mm = mese_corrente.split("-")[0] if month_labels else None  # "MM" o None
+        # etichette e mese corrente
+        month_labels = show["Mese"].tolist()
+        prod_values  = show["Produzione (kWh)"].astype(float).tolist()
+        mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
+        prod_last = float(prod_values[-1]) if prod_values else 0.0
+        last_mm = mese_corrente.split("-")[0] if month_labels else None  # "MM" o None
 
-    # --- calcolo atteso_last da GS (province_coeff) ---
-    atteso_last = 0.0
-    try:
-        if selected:
+        # --- calcolo atteso_last ---
+        atteso_last = 0.0
+        atteso_label = None
+        if selected and last_mm:
             row_sel = st.session_state.anag_df[st.session_state.anag_df["denominazione"] == selected].iloc[0]
             prov_sigla = str(row_sel.get("provincia","")).strip().upper()
             potenza_sel = float(row_sel.get("potenza_kw", 0) or 0)
-            if prov_sigla and potenza_sel > 0 and last_mm:
+            if prov_sigla and potenza_sel > 0:
                 coeff_df = load_coeff_gs()
-    
-                # atteso prima del derating
                 atteso_last = atteso_for_last_month(prov_sigla, potenza_sel, last_mm, coeff_df)
+
+                # DEBUG coeff
+                mese_col = MESE_COL.get(last_mm)
+                row_coeff = coeff_df[coeff_df["provincia"] == prov_sigla]
+                coeff_val = float(row_coeff.iloc[0][mese_col]) if (not row_coeff.empty and mese_col in row_coeff.columns) else 0.0
+                st.write({"prov": prov_sigla, "mese": last_mm, "mese_col": mese_col,
+                          "kW": potenza_sel, "coeff(kWh/kW)": coeff_val,
+                          "atteso_pre_derating(kWh)": round(atteso_last, 2)})
+
+                # derating
+                der = float(row_sel.get("derating_percent", 0) or 0)
+                if 0 < der <= 99 and atteso_last > 0:
+                    atteso_last = atteso_last * (1 - der / 100.0)
+
+                # etichetta per grafico
+                mesi_it = {"01":"Gennaio","02":"Febbraio","03":"Marzo","04":"Aprile","05":"Maggio","06":"Giugno",
+                           "07":"Luglio","08":"Agosto","09":"Settembre","10":"Ottobre","11":"Novembre","12":"Dicembre"}
+                mese_it = mesi_it.get(last_mm, last_mm)
+                atteso_label = f"standard {mese_it} ({prov_sigla}) × {potenza_sel:.1f} kW = {atteso_last:.1f} kWh"
+
     
                 # DEBUG: coeff realmente usato
                 mese_col = MESE_COL.get(last_mm)
@@ -544,6 +556,7 @@ def main():
                                 atteso_last if atteso_last > 0 else None,
                                 last_class,
                                 atteso_label=atteso_label)
+
 
 
         # Tabella
