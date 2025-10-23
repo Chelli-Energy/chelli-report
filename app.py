@@ -8,6 +8,10 @@ from datetime import date
 import matplotlib.pyplot as plt
 import numpy as np
 from reportlab.lib.pagesizes import A4
+import smtplib
+from email.message import EmailMessage
+from email.utils import formataddr
+import ssl
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
@@ -251,6 +255,38 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
 
     c.showPage(); c.save()
 
+ITALIAN_MONTHS = {
+    1:"Gennaio",2:"Febbraio",3:"Marzo",4:"Aprile",5:"Maggio",6:"Giugno",
+    7:"Luglio",8:"Agosto",9:"Settembre",10:"Ottobre",11:"Novembre",12:"Dicembre"
+}
+
+def subject_for_last_month(today=None):
+    from datetime import datetime
+    today = today or datetime.now()
+    y = today.year
+    m = today.month - 1 or 12
+    if today.month == 1:
+        y -= 1
+    return f"Report produzione fotovoltaica — {ITALIAN_MONTHS[m]} {y}"
+
+def send_pdf_via_email(pdf_bytes: bytes, filename: str, to_email: str):
+    import streamlit as st
+    s = st.secrets["EMAIL"]
+    msg = EmailMessage()
+    msg["From"] = formataddr(("Chelli Report", s["SMTP_USER"]))
+    msg["To"] = to_email
+    msg["Cc"] = "assistenza@chellienergysolutions.it"
+    msg["Reply-To"] = "assistenza@chellienergysolutions.it"
+    msg["Subject"] = subject_for_last_month()
+    msg.set_content("In allegato il report mensile in PDF.")
+    msg.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename=filename)
+
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL(s["SMTP_SERVER"], s["SMTP_PORT"], context=context) as server:
+        server.login(s["SMTP_USER"], s["SMTP_PASS"])
+        server.send_message(msg)
+
+
 # -------------------------
 # 3) App
 # -------------------------
@@ -461,6 +497,16 @@ def main():
                            data=pdf_buf.getvalue(),
                            file_name=f"Report_{denom_safe}_{mese_corrente}.pdf",
                            mime="application/pdf")
+
+        if st.button("Spedisci PDF"):
+            try:
+                # recupero email cliente dalla riga selezionata dell’anagrafica
+                cliente_email = current_client["email"]  # la tua variabile/dict della riga cliente
+                send_pdf_via_email(pdf_buf.getvalue(), pdf_name, cliente_email)
+                st.success("Email inviata.")
+            except Exception as e:
+                st.error(f"Invio fallito: {e}")
+
 
         # Invio email (predisposizione)
         st.subheader("Invio PDF via email")
