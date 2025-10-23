@@ -470,6 +470,19 @@ def main():
             st.error("Nessuna colonna contenente 'prelev' trovata")
 
         df["mese"] = df["Data e ora"].dt.to_period("M")
+        # Normalizza colonne rete: scegli la prima disponibile con dati
+        def _pick_col(cands):
+            for c in cands:
+                if c in df.columns:
+                    s = pd.to_numeric(df[c], errors="coerce").fillna(0)
+                    if s.sum() > 0:
+                        return s.astype(float)
+            return pd.Series(0.0, index=df.index)
+        
+        # Sovrascrivi le colonne normalizzate usate dal report
+        df["Rete_prelevata_kWh"] = _pick_col(["Energia prelevata dalla rete","Energia prelevata","Rete_prelevata_kWh"])
+        df["Rete_immessa_kWh"]   = _pick_col(["Energia alimentata nella rete","Rete_immessa_kWh"])
+
         agg = (
             df.groupby("mese")[["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]]
               .sum()
