@@ -42,7 +42,7 @@ def check_password():
 # 2) Utility base
 # -------------------------
 ANAGRAFICA_PATH = "schema/anagrafica.csv"
-ANAG_COLS = ["denominazione","indirizzo","provincia","potenza_kw","data_installazione","derating_percent"]
+ANAG_COLS = ["denominazione","indirizzo","provincia","potenza_kw","data_installazione","derating_percent","email"]
 
 def gs_client():
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -318,6 +318,7 @@ def main():
             with c1:
                 st.markdown(f"**Indirizzo:** {row.get('indirizzo','')}")
                 st.markdown(f"**Provincia:** {row.get('provincia','')}")
+                st.markdown(f"**Email:** {row.get('email','')}")
             with c2:
                 st.markdown(f"**Potenza (kW):** {row.get('potenza_kw','')}")
                 st.markdown(f"**Data installazione:** {row.get('data_installazione','')}")
@@ -332,13 +333,14 @@ def main():
             denominazione = st.text_input("Denominazione*", "")
             indirizzo = st.text_input("Indirizzo*", "")
             provincia = st.text_input("Provincia*", placeholder="es. FI, PI, SI")
+            email = st.text_input("Email*", "")
         with c2:
             potenza_kw = st.number_input("Potenza (kW)*", min_value=0.1, step=0.1, value=5.0)
             data_installazione = st.date_input("Data installazione*", value=date.today())
             derating_percent = st.number_input("Derating impianto (%)", min_value=0, max_value=99, value=0, step=1)
         submitted = st.form_submit_button("Aggiungi all’elenco")
         if submitted:
-            if not denominazione or not indirizzo or not provincia:
+            if not denominazione or not indirizzo or not provincia or not email:
                 st.error("Compila i campi obbligatori contrassegnati con *")
             else:
                 new_row = {
@@ -348,6 +350,7 @@ def main():
                     "potenza_kw": float(potenza_kw),
                     "data_installazione": data_installazione.strftime("%d/%m/%Y"),
                     "derating_percent": int(derating_percent),
+                    "email": email.strip(),
                 }
                 try:
                     append_anagrafica_gs(new_row)
