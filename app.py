@@ -154,6 +154,10 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     w, h = fig.get_size_inches()
     fig.set_size_inches(w * 2.50, h * 2.20)
     base = plt.rcParams.get("font.size", 10)
+    scale_factor = max(2.5, 2.2)  # i tuoi fattori
+    bump = base * scale_factor * 0.9
+
+    base = plt.rcParams.get("font.size", 10)
     scale_factor = max(2.5, 2.2)  # lo stesso usato per la figura
     bump = base * scale_factor * 0.9  # leggermente ridotto per equilibrio
     ax.tick_params(labelsize=bump)
@@ -213,6 +217,26 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     plt.subplots_adjust(bottom=0.24)
     plt.tight_layout()
     fig.savefig(buf, format="PNG", dpi=300)
+    # ingrandisci etichette barre, testo linea "standard" e ogni altro testo
+    for c in ax.containers:
+        for t in c.datavalues if hasattr(c, "datavalues") else []:
+            pass  # no-op, serve solo a non rompere vecchie versioni
+    try:
+        for c in ax.containers:
+            lbls = ax.bar_label(c, padding=4)  # ricrea labels se non esistono
+            for t in lbls:
+                t.set_fontsize(bump * 1.6)
+    except Exception:
+        pass
+    
+    # etichette asse X
+    for lab in ax.get_xticklabels():
+        lab.set_fontsize(bump * 1.5)
+    
+    # testo “standard …” e qualsiasi altro testo
+    for t in ax.texts:
+        t.set_fontsize(bump * 1.6)
+
     plt.close(fig)
     buf.seek(0)
     return buf.getvalue()
