@@ -458,7 +458,17 @@ def main():
         
         for col in ["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]:
             df[col] = df[col].map(_to_num).fillna(0.0).astype(float)
-        
+        # --- DEBUG Rete prelevata ---
+        st.write("Colonne trovate:", list(df.columns))
+        cand = [c for c in df.columns if "prelev" in c.lower()]
+        st.write("Candidati 'prelevata':", cand)
+        if cand:
+            st.write("Tipo dati:", df[cand[0]].dtype)
+            st.write("Esempi valori:", df[cand[0]].head(5).tolist())
+            st.write("Somma numerica:", pd.to_numeric(df[cand[0]], errors="coerce").sum())
+        else:
+            st.error("Nessuna colonna contenente 'prelev' trovata")
+
         df["mese"] = df["Data e ora"].dt.to_period("M")
         agg = (
             df.groupby("mese")[["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]]
