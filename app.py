@@ -275,7 +275,7 @@ def send_pdf_via_email(pdf_bytes: bytes, filename: str, to_email: str):
     msg = EmailMessage()
     msg["From"] = formataddr(("Chelli Report", s["SMTP_USER"]))
     msg["To"] = f"{to_email}, assistenza@chellienergysolutions.it"
-    msg["Cc"] = "andreadedonato2@gmail.com"
+    msg["Cc"] = ""
     msg["Reply-To"] = "assistenza@chellienergysolutions.it"
     msg["Subject"] = subject_for_last_month()
     msg.set_content("In allegato il report mensile in PDF.")
