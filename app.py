@@ -616,12 +616,12 @@ def main():
                 "Denominazione": str(row.get("denominazione","")),
                 "Indirizzo": str(row.get("indirizzo","")),
                 "Provincia": str(row.get("provincia","")),
-                "Potenza (kWh)": str(row.get("potenza_kw","")),
+                "Potenza (kWp)": str(row.get("potenza_kw","")),
                 "Data installazione": str(row.get("data_installazione","")),
             }
             denom_safe = str(row.get("denominazione","")).replace(" ", "")
         else:
-            anag_dict = {"Denominazione":"","Indirizzo":"","Provincia":"","Potenza (kWh)":"","Data installazione":""}
+            anag_dict = {"Denominazione":"","Indirizzo":"","Provincia":"","Potenza (kWp)":"","Data installazione":""}
             denom_safe = "Cliente"
 
         # Titolo PDF
