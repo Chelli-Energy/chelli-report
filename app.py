@@ -151,6 +151,9 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     x = np.arange(len(month_labels))
     widths = np.array([0.5]*len(month_labels))
     colors_bars = [GRAY_PRIOR]*len(month_labels)
+    w, h = fig.get_size_inches()
+    fig.set_size_inches(w * 1.30, h * 1.20)
+
 
     last_color = GREEN_MAIN if last_ok_class=="verde" else (ORANGE if last_ok_class=="arancione" else RED)
     if colors_bars:
