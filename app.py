@@ -465,12 +465,12 @@ def main():
         for c in num_cols:
             show[c] = pd.to_numeric(show[c], errors="coerce").fillna(0.0)
 
-        # prepara etichette e mese corrente PRIMA del calcolo atteso
-month_labels = show["Mese"].tolist()
-prod_values  = show["Produzione (kWh)"].astype(float).tolist()
-mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
-prod_last = float(prod_values[-1]) if prod_values else 0.0
-last_mm = mese_corrente.split("-")[0] if month_labels else None  # "MM" o None
+    # prepara etichette e mese corrente PRIMA del calcolo atteso
+    month_labels = show["Mese"].tolist()
+    prod_values  = show["Produzione (kWh)"].astype(float).tolist()
+    mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
+    prod_last = float(prod_values[-1]) if prod_values else 0.0
+    last_mm = mese_corrente.split("-")[0] if month_labels else None  # "MM" o None
 
     # --- calcolo atteso_last da GS (province_coeff) ---
     atteso_last = 0.0
