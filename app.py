@@ -466,11 +466,6 @@ def main():
             show[c] = pd.to_numeric(show[c], errors="coerce").fillna(0.0)
 
         # --- calcolo atteso_last da GS (province_coeff) ---
-        month_labels = show["Mese"].tolist()
-        prod_values  = show["Produzione (kWh)"].astype(float).tolist()
-        mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
-        prod_last = float(prod_values[-1]) if prod_values else 0.0
-
         atteso_last = 0.0
         try:
             if selected:
@@ -480,15 +475,31 @@ def main():
                 if prov_sigla and potenza_sel > 0:
                     coeff_df = load_coeff_gs()
                     last_mm = mese_corrente.split("-")[0] if month_labels else None  # "MM"
+        
+                    # atteso prima del derating
                     atteso_last = atteso_for_last_month(prov_sigla, potenza_sel, last_mm, coeff_df)
-
+        
+                    # DEBUG: mostra coefficiente usato e atteso calcolato
+                    mese_col = MESE_COL.get(last_mm)
+                    row_coeff = coeff_df[coeff_df["provincia"] == prov_sigla]
+                    coeff_val = float(row_coeff.iloc[0][mese_col]) if (not row_coeff.empty and mese_col in row_coeff.columns) else 0.0
+                    st.write({
+                        "prov": prov_sigla,
+                        "mese": last_mm,
+                        "mese_col": mese_col,
+                        "kW": potenza_sel,
+                        "coeff(kWh/kW)": coeff_val,
+                        "atteso_pre_derating(kWh)": round(atteso_last, 2)
+                    })
+        
                     # applica derating percentuale se presente
                     der = float(row_sel.get("derating_percent", 0) or 0)
                     if 0 < der <= 99 and atteso_last > 0:
                         atteso_last = atteso_last * (1 - der / 100.0)
-                    
+        
         except Exception as e:
             st.warning(f"Valore atteso non calcolabile: {e}")
+
 
         # --- classificazione soglie richieste ---
         if atteso_last > 0:
