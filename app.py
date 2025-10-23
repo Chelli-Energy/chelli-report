@@ -307,7 +307,7 @@ def send_pdf_via_email(pdf_bytes: bytes, filename: str, to_email: str):
           Tel: 055 8323264
         </p>
     
-        <p style="font-size:6px; color:#666; margin-top:18px; line-height:1.3;">
+        <p style="font-size:8px; color:#666; margin-top:18px; line-height:1.3;">
           Questo documento è formato esclusivamente per il destinatario. Tutte le informazioni ivi contenute,
           compresi eventuali allegati, sono da ritenere esclusivamente confidenziali e riservate secondo i termini
           del vigente D.Lgs. 196/2003 in materia di privacy e del Regolamento europeo 679/2016 – GDPR – e quindi ne
