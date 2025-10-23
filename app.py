@@ -496,6 +496,7 @@ def main():
         compose_pdf(path_out=pdf_buf, logo_path="assets/logo.jpg", title_mmYYYY=titolo_esteso,
                     anag_dict=anag_dict, table_rows=table_rows, last_class=last_class,
                     chart_img=ImageReader(BytesIO(img_bytes)))
+        pdf_name = f"Report_{denom_safe}_{mese_corrente}.pdf"
         st.download_button("Scarica PDF",
                            data=pdf_buf.getvalue(),
                            file_name=f"Report_{denom_safe}_{mese_corrente}.pdf",
