@@ -40,61 +40,24 @@ def check_password():
 ANAGRAFICA_PATH = "schema/anagrafica.csv"
 ANAG_COLS = ["denominazione","indirizzo","provincia","potenza_kw","data_installazione","derating_percent"]
 
-
-def load_anagrafica():
-    try:
-        df = pd.read_csv(ANAGRAFICA_PATH)
-        missing = [c for c in ANAG_COLS if c not in df.columns]
-        for c in missing: df[c] = ""
-        return df[ANAG_COLS]
-    except Exception:
-        return pd.DataFrame(columns=ANAG_COLS)
-
-def to_download_button(df: pd.DataFrame, filename: str, label: str):
-    buf = BytesIO()
-    df.to_csv(buf, index=False)
-    st.download_button(label, buf.getvalue(), file_name=filename, mime="text/csv")
-
 def gs_client():
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
     info_raw = st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"]
-
-    # Accetta sia dict (TOML table) che stringa JSON
     if isinstance(info_raw, dict):
         info = dict(info_raw)
     else:
-        import json, ast
-        try:
-            info = json.loads(info_raw)
-        except Exception:
-            info = ast.literal_eval(info_raw)
-
-    # Normalizza private_key:
-    # - se contiene "\\n" -> converte in veri "\n"
-    # - se è multiline (TOML table) -> lascia com'è
+        import ast
+        info = json.loads(info_raw) if isinstance(info_raw, str) and info_raw.strip().startswith("{") else ast.literal_eval(info_raw)
     pk = info.get("private_key", "")
     if "\\n" in pk:
         pk = pk.replace("\\n", "\n")
     info["private_key"] = pk
-
-    # Controlli minimi prima di creare le credenziali
-    if not pk or "BEGIN PRIVATE KEY" not in pk or "END PRIVATE KEY" not in pk:
-        raise ValueError("private_key non valida: manca BEGIN/END PRIVATE KEY")
-
-    if not info.get("client_email"):
-        raise ValueError("client_email mancante nei secrets")
-
-    from google.oauth2.service_account import Credentials
     creds = Credentials.from_service_account_info(info, scopes=scopes)
     gc = gspread.authorize(creds)
-    sh = gc.open_by_key(st.secrets["GSHEET_ID"])
-    return sh
-
-
+    return gc.open_by_key(st.secrets["GSHEET_ID"])
 
 def sheet_to_df(ws):
-    rows = ws.get_all_records()
-    return pd.DataFrame(rows)
+    return pd.DataFrame(ws.get_all_records())
 
 def df_append_row(ws, row_dict):
     headers = ws.row_values(1)
@@ -105,37 +68,29 @@ def df_append_row(ws, row_dict):
     ws.append_row(values)
 
 def load_anagrafica_gs():
-    """Legge il foglio 'anagrafica' e normalizza la provincia a sigla."""
+    """Legge il foglio 'anagrafica' e normalizza la provincia a sigla + derating."""
     try:
         sh = gs_client(); ws = sh.worksheet("anagrafica")
         df = sheet_to_df(ws)
         for c in ANAG_COLS:
             if c not in df.columns: df[c] = ""
-
-        # normalizza provincia -> sigla
         df["provincia"] = (
             df["provincia"].astype(str).str.strip().str.upper()
-                .map(lambda x: PROVINCE_MAP.get(x, x))
+              .map(lambda x: PROVINCE_MAP.get(x, x))
         )
-
-        # normalizza derating_percent (0–99 int)
         if "derating_percent" not in df.columns: df["derating_percent"] = ""
-        df["derating_percent"] = pd.to_numeric(df["derating_percent"], errors="coerce") \
-            .clip(lower=0, upper=99).fillna(0).astype(int)
-
+        df["derating_percent"] = pd.to_numeric(df["derating_percent"], errors="coerce").clip(0,99).fillna(0).astype(int)
         return df[ANAG_COLS]
-
     except Exception as e:
         st.error(f"Errore lettura anagrafica (GS): {e}")
         return pd.DataFrame(columns=ANAG_COLS)
 
 def append_anagrafica_gs(row: dict):
-    """Aggiunge un cliente al foglio 'anagrafica'."""
     sh = gs_client(); ws = sh.worksheet("anagrafica")
     df_append_row(ws, row)
 
 def load_coeff_gs():
-    """Legge il foglio 'province_coeff' e forza i mesi a numerico."""
+    """Legge 'province_coeff' e normalizza i numeri (virgola/punto, migliaia)."""
     sh = gs_client(); ws = sh.worksheet("province_coeff")
     df = sheet_to_df(ws)
     df["provincia"] = (
@@ -143,25 +98,17 @@ def load_coeff_gs():
           .map(lambda x: PROVINCE_MAP.get(x, x))
     )
     for col in ["gennaio","febbraio","marzo","aprile","maggio","giugno",
-            "luglio","agosto","settembre","ottobre","novembre","dicembre"]:
+                "luglio","agosto","settembre","ottobre","novembre","dicembre"]:
         if col in df.columns:
             s = df[col].astype(str).str.strip()
             s = s.str.replace("\u00A0", "", regex=False).str.replace(" ", "", regex=False)
-    
-            # Se contiene sia '.' che ',' -> rimuovi i '.' (migliaia), poi ',' -> '.'
             mask_both = s.str.contains(",", regex=False) & s.str.contains(".", regex=False)
             s = s.where(~mask_both, s.str.replace(".", "", regex=False))
             s = s.str.replace(",", ".", regex=False)
-    
             df[col] = pd.to_numeric(s, errors="coerce").fillna(0.0)
-    
-            # Fix di sicurezza: se rimane >1000, probabilmente mancava la virgola -> scala /100
             df.loc[df[col] > 1000, col] = df.loc[df[col] > 1000, col] / 100.0
         else:
             df[col] = 0.0
-
-
-
     return df
 
 def atteso_for_last_month(prov_sigla: str, potenza_kw: float, last_mm: str, coeff_df: pd.DataFrame) -> float:
@@ -172,22 +119,6 @@ def atteso_for_last_month(prov_sigla: str, potenza_kw: float, last_mm: str, coef
     if row.empty: return 0.0
     coeff = float(row.iloc[0][mese_col])  # kWh per kW
     return coeff * float(potenza_kw or 0.0)
-
-    # DEBUG: verifica coefficiente usato (prima del derating)
-    try:
-        mese_col = MESE_COL.get(last_mm)
-        coeff_series = coeff_df.loc[coeff_df["provincia"] == prov_sigla, mese_col]
-        coeff_val = float(coeff_series.iloc[0]) if not coeff_series.empty else 0.0
-    except Exception:
-        coeff_val = 0.0
-    
-    st.write({
-        "debug_coeff": coeff_val,                 # atteso kWh per kW del mese
-        "prov": prov_sigla,
-        "mese": MESE_COL.get(last_mm),
-        "kW": potenza_sel,
-        "atteso_pre_derating": round(atteso_last, 2)
-    })
 
 # -------------------------
 # 2bis) Helper grafico e PDF
@@ -218,7 +149,7 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     colors_bars = [GRAY_PRIOR]*len(month_labels)
 
     last_color = GREEN_MAIN if last_ok_class=="verde" else (ORANGE if last_ok_class=="arancione" else RED)
-    if len(colors_bars) > 0:
+    if colors_bars:
         colors_bars[-1] = last_color
         widths[-1] = 0.7
 
@@ -235,16 +166,13 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     if atteso_last is not None and len(bars) > 0:
         last_bar = bars[-1]
         bx, bw = last_bar.get_x(), last_bar.get_width()
-        ax.hlines(y=atteso_last, xmin=bx, xmax=bx+bw, colors="white", linewidth=1.2, linestyles=(0,(2,2)))
-        # etichetta accanto alla linea, a destra del tratteggio
-        label_txt = atteso_label if 'atteso_label' in locals() and atteso_label else "standard mese × kW"
-        ax.text(bx + bw + 0.15, atteso_last,
-                label_txt, ha="left", va="center",
+        ax.hlines(y=atteso_last, xmin=bx, xmax=bx+bw, colors="#333333", linewidth=1.2, linestyles=(0,(2,2)))
+        label_txt = atteso_label if atteso_label else "standard mese × kW"
+        ax.text(bx + bw + 0.15, atteso_last, label_txt, ha="left", va="center",
                 fontsize=7, color="#333333", backgroundcolor="white")
 
-
     buf = BytesIO()
-    plt.subplots_adjust(bottom=0.24)  # più spazio per le etichette 
+    plt.subplots_adjust(bottom=0.24)
     plt.tight_layout()
     fig.savefig(buf, format="PNG", dpi=300)
     plt.close(fig)
@@ -343,13 +271,7 @@ def main():
         denoms = ["-- Seleziona cliente --"] + sorted(
             [d for d in anag["denominazione"].dropna().astype(str).unique() if d.strip()]
         )
-        selected = st.selectbox(
-            "Seleziona cliente",
-            options=denoms,
-            index=0,
-            label_visibility="collapsed"
-        )
-
+        selected = st.selectbox("Seleziona cliente", options=denoms, index=0, label_visibility="collapsed")
         if selected == "-- Seleziona cliente --":
             st.info("Seleziona dall’elenco o aggiungi un nuovo cliente per procedere.")
             selected = None
@@ -365,7 +287,6 @@ def main():
                 st.markdown(f"**Data installazione:** {row.get('data_installazione','')}")
                 st.markdown(f"**Derating (%):** {row.get('derating_percent', 0)}")
 
-
     # --- Aggiungi nuovo cliente ---
     st.divider()
     st.subheader("Aggiungi nuovo cliente")
@@ -379,7 +300,6 @@ def main():
             potenza_kw = st.number_input("Potenza (kW)*", min_value=0.1, step=0.1, value=5.0)
             data_installazione = st.date_input("Data installazione*", value=date.today())
             derating_percent = st.number_input("Derating impianto (%)", min_value=0, max_value=99, value=0, step=1)
-
         submitted = st.form_submit_button("Aggiungi all’elenco")
         if submitted:
             if not denominazione or not indirizzo or not provincia:
@@ -392,7 +312,6 @@ def main():
                     "potenza_kw": float(potenza_kw),
                     "data_installazione": data_installazione.strftime("%d/%m/%Y"),
                     "derating_percent": int(derating_percent),
-
                 }
                 try:
                     append_anagrafica_gs(new_row)
@@ -400,7 +319,6 @@ def main():
                     st.success("Cliente aggiunto su Google Sheets.")
                 except Exception as e:
                     st.error(f"Errore salvataggio su Google Sheets: {e}")
-
 
     st.divider()
     st.subheader("File Excel 12 mesi — caricamento e lettura")
@@ -410,39 +328,33 @@ def main():
         return
 
     try:
+        # Lettura Excel
         xls = pd.read_excel(up, sheet_name=None)
-        if "Anno" in xls:
-            df = xls["Anno"].copy()
-        else:
-            first_sheet = next(iter(xls))
-            df = xls[first_sheet].copy()
+        df = xls["Anno"].copy() if "Anno" in xls else xls[next(iter(xls))].copy()
 
+        # Colonne base
         prod_col = None
         for c in df.columns:
             cs = str(c)
             if "Energia per inverter" in cs or cs.strip().lower() == "produzione totale":
                 prod_col = c; break
         if prod_col is None:
-            st.error("Colonna produzione non trovata.")
-            return
-
+            st.error("Colonna produzione non trovata."); return
         if "Data e ora" not in df.columns:
-            st.error("Colonna 'Data e ora' non trovata.")
-            return
+            st.error("Colonna 'Data e ora' non trovata."); return
+
         df["Data e ora"] = pd.to_datetime(df["Data e ora"], errors="coerce", dayfirst=True)
         df = df.dropna(subset=["Data e ora"])
 
         for col in [prod_col, "Consumo totale", "Autoconsumo", "Energia alimentata nella rete", "Energia prelevata"]:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
-            else:
-                df[col] = 0.0
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0) if col in df.columns else 0.0
         df["Produzione_kWh"]     = df[prod_col] / 1000.0
-        df["Consumo_kWh"]        = df["Consumo totale"] / 1000.0
-        df["Autoconsumo_kWh"]    = df["Autoconsumo"] / 1000.0
-        df["Rete_immessa_kWh"]   = df["Energia alimentata nella rete"] / 1000.0
-        df["Rete_prelevata_kWh"] = df["Energia prelevata"] / 1000.0
+        df["Consumo_kWh"]        = df.get("Consumo totale", 0) / 1000.0
+        df["Autoconsumo_kWh"]    = df.get("Autoconsumo", 0) / 1000.0
+        df["Rete_immessa_kWh"]   = df.get("Energia alimentata nella rete", 0) / 1000.0
+        df["Rete_prelevata_kWh"] = df.get("Energia prelevata", 0) / 1000.0
 
+        # Aggregazione mensile
         df["mese"] = df["Data e ora"].dt.to_period("M")
         agg = (df.groupby("mese")[["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]]
                  .sum().reset_index())
@@ -458,19 +370,18 @@ def main():
             "Rete_prelevata_kWh":"Rete prelevata (kWh)"
         })[["Mese","Produzione (kWh)","Consumo (kWh)","Autoconsumo (kWh)","Rete immessa (kWh)","Rete prelevata (kWh)"]]
 
-        # colonne numeriche
-        num_cols = ["Produzione (kWh)","Consumo (kWh)","Autoconsumo (kWh)","Rete immessa (kWh)","Rete prelevata (kWh)"]
-        for c in num_cols:
+        # Numeriche safe
+        for c in ["Produzione (kWh)","Consumo (kWh)","Autoconsumo (kWh)","Rete immessa (kWh)","Rete prelevata (kWh)"]:
             show[c] = pd.to_numeric(show[c], errors="coerce").fillna(0.0)
 
-        # etichette e mese corrente
+        # Label e mese corrente
         month_labels = show["Mese"].tolist()
         prod_values  = show["Produzione (kWh)"].astype(float).tolist()
         mese_corrente = month_labels[-1] if month_labels else "MM-YYYY"
         prod_last = float(prod_values[-1]) if prod_values else 0.0
-        last_mm = mese_corrente.split("-")[0] if month_labels else None  # "MM" o None
+        last_mm = mese_corrente.split("-")[0] if month_labels else None
 
-        # --- calcolo atteso_last ---
+        # Atteso dal foglio province_coeff
         atteso_last = 0.0
         atteso_label = None
         if selected and last_mm:
@@ -480,88 +391,27 @@ def main():
             if prov_sigla and potenza_sel > 0:
                 coeff_df = load_coeff_gs()
                 atteso_last = atteso_for_last_month(prov_sigla, potenza_sel, last_mm, coeff_df)
-
-                # DEBUG coeff
-                mese_col = MESE_COL.get(last_mm)
-                row_coeff = coeff_df[coeff_df["provincia"] == prov_sigla]
-                coeff_val = float(row_coeff.iloc[0][mese_col]) if (not row_coeff.empty and mese_col in row_coeff.columns) else 0.0
-                st.write({"prov": prov_sigla, "mese": last_mm, "mese_col": mese_col,
-                          "kW": potenza_sel, "coeff(kWh/kW)": coeff_val,
-                          "atteso_pre_derating(kWh)": round(atteso_last, 2)})
-
-                # derating
                 der = float(row_sel.get("derating_percent", 0) or 0)
                 if 0 < der <= 99 and atteso_last > 0:
-                    atteso_last = atteso_last * (1 - der / 100.0)
-
-                # etichetta per grafico
+                    atteso_last *= (1 - der / 100.0)
                 mesi_it = {"01":"Gennaio","02":"Febbraio","03":"Marzo","04":"Aprile","05":"Maggio","06":"Giugno",
                            "07":"Luglio","08":"Agosto","09":"Settembre","10":"Ottobre","11":"Novembre","12":"Dicembre"}
-                mese_it = mesi_it.get(last_mm, last_mm)
-                atteso_label = f"standard {mese_it} ({prov_sigla}) × {potenza_sel:.1f} kW = {atteso_last:.1f} kWh"
+                atteso_label = f"standard {mesi_it.get(last_mm,last_mm)} ({prov_sigla}) × {potenza_sel:.1f} kW = {atteso_last:.1f} kWh"
 
-    
-                # DEBUG: coeff realmente usato
-                mese_col = MESE_COL.get(last_mm)
-                row_coeff = coeff_df[coeff_df["provincia"] == prov_sigla]
-                coeff_val = float(row_coeff.iloc[0][mese_col]) if (not row_coeff.empty and mese_col in row_coeff.columns) else 0.0
-                st.write({
-                    "prov": prov_sigla,
-                    "mese": last_mm,
-                    "mese_col": mese_col,
-                    "kW": potenza_sel,
-                    "coeff(kWh/kW)": coeff_val,
-                    "atteso_pre_derating(kWh)": round(atteso_last, 2)
-                })
-    
-                # derating
-                der = float(row_sel.get("derating_percent", 0) or 0)
-                if 0 < der <= 99 and atteso_last > 0:
-                    atteso_last = atteso_last * (1 - der / 100.0)
-    except Exception as e:
-        st.warning(f"Valore atteso non calcolabile: {e}")
-
-
-        # --- classificazione soglie richieste ---
+        # Classificazione
         if atteso_last > 0:
             delta = (prod_last - atteso_last) / atteso_last
-            if delta >= -0.10:
-                last_class = "verde"
-            elif -0.20 <= delta < -0.10:
-                last_class = "arancione"
-            else:
-                last_class = "rosso"
+            if delta >= -0.10:        last_class = "verde"
+            elif delta >= -0.20:      last_class = "arancione"
+            else:                     last_class = "rosso"
         else:
             last_class = "verde"
 
         # Grafico
-        mesi_it = {"01":"Gennaio","02":"Febbraio","03":"Marzo","04":"Aprile","05":"Maggio","06":"Giugno",
-                   "07":"Luglio","08":"Agosto","09":"Settembre","10":"Ottobre","11":"Novembre","12":"Dicembre"}
-        atteso_label = None
-        if atteso_last and selected:
-            mm = mese_corrente.split("-")[0]
-            mese_it = mesi_it.get(mm, mm)
-            prov_lbl = str(row_sel.get("provincia","")).upper()
-            kwp = float(row_sel.get("potenza_kw", 0) or 0)
-            # esempio: "standard Settembre (FI) × 5.0 kW = 645.3 kWh"
-            atteso_label = f"standard {mese_it} ({prov_lbl}) × {kwp:.1f} kW = {atteso_last:.1f} kWh"
-
-        st.write({
-            "provincia": prov_sigla,
-            "mese": last_mm,
-            "potenza_kw": potenza_sel,
-            "atteso_last": round(atteso_last, 2)
-        })
-
-
-
-        
         img_bytes = build_monthly_chart(month_labels, prod_values,
-                                atteso_last if atteso_last > 0 else None,
-                                last_class,
-                                atteso_label=atteso_label)
-
-
+                                        atteso_last if atteso_last > 0 else None,
+                                        last_class,
+                                        atteso_label=atteso_label)
 
         # Tabella
         table_rows = []
@@ -590,33 +440,39 @@ def main():
                 "Derating (%)": str(row.get("derating_percent", 0)),
                 "Data installazione": str(row.get("data_installazione","")),
             }
-
             denom_safe = str(row.get("denominazione","")).replace(" ", "")
         else:
-            anag_dict = {"Denominazione":"","Indirizzo":"","Provincia":"","Potenza":"","Data installazione":""}
+            anag_dict = {"Denominazione":"","Indirizzo":"","Provincia":"","Potenza (kWh)":"","Derating (%)":"","Data installazione":""}
             denom_safe = "Cliente"
 
+        # Titolo PDF
+        mm, yyyy = (mese_corrente.split("-") + ["",""])[:2]
         mesi_it = {"01":"Gennaio","02":"Febbraio","03":"Marzo","04":"Aprile","05":"Maggio","06":"Giugno",
                    "07":"Luglio","08":"Agosto","09":"Settembre","10":"Ottobre","11":"Novembre","12":"Dicembre"}
-        mm, yyyy = (mese_corrente.split("-") + ["",""])[:2]
         titolo_esteso = f"{mesi_it.get(mm, mm)} {yyyy}"
 
         # PDF
+        st.subheader("PDF")
         pdf_buf = BytesIO()
-        compose_pdf(
-            path_out=pdf_buf,
-            logo_path="assets/logo.jpg",
-            title_mmYYYY=titolo_esteso,
-            anag_dict=anag_dict,
-            table_rows=table_rows,
-            last_class=last_class,
-            chart_img=ImageReader(BytesIO(img_bytes))
-        )
-        pdf_data = pdf_buf.getvalue()
+        compose_pdf(path_out=pdf_buf, logo_path="assets/logo.jpg", title_mmYYYY=titolo_esteso,
+                    anag_dict=anag_dict, table_rows=table_rows, last_class=last_class,
+                    chart_img=ImageReader(BytesIO(img_bytes)))
         st.download_button("Scarica PDF",
-                           data=pdf_data,
+                           data=pdf_buf.getvalue(),
                            file_name=f"Report_{denom_safe}_{mese_corrente}.pdf",
                            mime="application/pdf")
+
+        # Invio email (predisposizione)
+        st.subheader("Invio PDF via email")
+        col_a, col_b = st.columns(2)
+        with col_a:
+            email_cliente = st.text_input("Email cliente", value="")
+        with col_b:
+            email_committente = st.text_input("Email committente (opzionale)", value="")
+        subject = st.text_input("Oggetto", value=f"Report produzione fotovoltaica — {titolo_esteso}")
+        body = st.text_area("Messaggio", value="In allegato il report mensile in PDF.", height=100)
+        if st.button("Spedisci PDF"):
+            st.info("Predisposizione pronta. Configura credenziali SMTP nei secrets per l’invio effettivo.")
 
     except Exception as e:
         st.error(f"Errore lettura Excel: {e}")
