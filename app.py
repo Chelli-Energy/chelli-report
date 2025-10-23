@@ -144,21 +144,21 @@ def load_coeff_gs():
     )
     for col in ["gennaio","febbraio","marzo","aprile","maggio","giugno",
             "luglio","agosto","settembre","ottobre","novembre","dicembre"]:
-    if col in df.columns:
-        s = df[col].astype(str).str.strip()
-        s = s.str.replace("\u00A0", "", regex=False).str.replace(" ", "", regex=False)
-
-        # Se contiene sia '.' che ',' -> rimuovi i '.' (migliaia), poi ',' -> '.'
-        mask_both = s.str.contains(",", regex=False) & s.str.contains(".", regex=False)
-        s = s.where(~mask_both, s.str.replace(".", "", regex=False))
-        s = s.str.replace(",", ".", regex=False)
-
-        df[col] = pd.to_numeric(s, errors="coerce").fillna(0.0)
-
-        # Fix di sicurezza: se rimane >1000, probabilmente mancava la virgola -> scala /100
-        df.loc[df[col] > 1000, col] = df.loc[df[col] > 1000, col] / 100.0
-    else:
-        df[col] = 0.0
+        if col in df.columns:
+            s = df[col].astype(str).str.strip()
+            s = s.str.replace("\u00A0", "", regex=False).str.replace(" ", "", regex=False)
+    
+            # Se contiene sia '.' che ',' -> rimuovi i '.' (migliaia), poi ',' -> '.'
+            mask_both = s.str.contains(",", regex=False) & s.str.contains(".", regex=False)
+            s = s.where(~mask_both, s.str.replace(".", "", regex=False))
+            s = s.str.replace(",", ".", regex=False)
+    
+            df[col] = pd.to_numeric(s, errors="coerce").fillna(0.0)
+    
+            # Fix di sicurezza: se rimane >1000, probabilmente mancava la virgola -> scala /100
+            df.loc[df[col] > 1000, col] = df.loc[df[col] > 1000, col] / 100.0
+        else:
+            df[col] = 0.0
 
 
 
