@@ -440,6 +440,8 @@ def main():
         df["Rete_prelevata_kWh"] = df.get("Energia prelevata", 0) / 1000.0
 
         # Aggregazione mensile
+        for col in ["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
         df["mese"] = df["Data e ora"].dt.to_period("M")
         agg = (df.groupby("mese")[["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]]
                  .sum().reset_index())
