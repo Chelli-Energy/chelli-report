@@ -168,7 +168,18 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     # Se usi etichette sulle barre (bar_label):
     try:
         for c in ax.containers:
-            ax.bar_label(c, fontsize=bump)
+            ax.bar_label(c, fontsize=bump)# Ingrandisci testo etichette sopra barre e linea standard
+        for c in ax.containers:
+            ax.bar_label(c, fontsize=bump * 1.4, padding=4)
+        
+        # Aumenta label asse X
+        for label in ax.get_xticklabels():
+            label.set_fontsize(bump * 1.3)
+        
+        # Se nel codice hai ax.text(...) per la linea standard
+        for t in ax.texts:
+            t.set_fontsize(bump * 1.4)
+
     except Exception:
         pass
 
