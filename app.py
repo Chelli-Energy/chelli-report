@@ -203,7 +203,7 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
     c.setFont("Helvetica", 10)
     c.setFillColor(colors.HexColor(TXT_BASE))
     y = logo_y - 1.9*cm
-    for label in ["Denominazione","Indirizzo","Provincia","Potenza (kWh)","Derating (%)","Data installazione"]:
+    for label in ["Denominazione","Indirizzo","Provincia","Potenza (kWh)","Data installazione"]:
         c.drawString(LM, y, f"{label}:")
         c.drawString(LM + 4.5*cm, y, str(anag_dict.get(label, '')))
         y -= 0.42*cm
