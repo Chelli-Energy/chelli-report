@@ -499,12 +499,12 @@ def main():
         st.download_button("Scarica PDF",
                            data=pdf_buf.getvalue(),
                            file_name=f"Report_{denom_safe}_{mese_corrente}.pdf",
-                           mime="application/pdf")
+                           mime="application/pdf",
+                           key="download_pdf")
 
-        if st.button("Spedisci PDF"):
+        if st.button("Spedisci PDF", key="send_pdf"):
             try:
-                # recupero email cliente dalla riga selezionata dell’anagrafica
-                cliente_email = current_client["email"]  # la tua variabile/dict della riga cliente
+                cliente_email = current_client["email"]
                 send_pdf_via_email(pdf_buf.getvalue(), pdf_name, cliente_email)
                 st.success("Email inviata.")
             except Exception as e:
