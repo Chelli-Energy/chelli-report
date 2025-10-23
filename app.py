@@ -197,7 +197,7 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
 
     bars = ax.bar(x, prod_values, width=widths, color=colors_bars, edgecolor="none")
     ax.set_ylabel("Produzione (kWh)")
-    ax.set_xticks(x, month_labels, rotation=45, ha="right", fontsize=14)
+    ax.set_xticks(x, month_labels, rotation=45, ha="right", fontsize=16)
     ymax = max(prod_values) if prod_values else 1
     ax.set_ylim(0, ymax*1.2)
 
@@ -211,7 +211,7 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
         ax.hlines(y=atteso_last, xmin=bx, xmax=bx+bw, colors="#333333", linewidth=1.2, linestyles=(0,(2,2)))
         label_txt = atteso_label if atteso_label else "standard mese × kW"
         ax.text(bx + bw + 0.15, atteso_last, label_txt, ha="left", va="center",
-                fontsize=14, color="#333333", backgroundcolor="white")
+                fontsize=16, color="#333333", backgroundcolor="white")
 
 
     buf = BytesIO()
