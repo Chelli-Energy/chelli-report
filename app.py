@@ -443,8 +443,17 @@ def main():
         df["Rete_prelevata_kWh"] = df.get("Energia prelevata", 0) / 1000.0
 
         # Aggregazione mensile
+        # Normalizza valori numerici con virgole o punti
         for col in ["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]:
+            df[col] = (
+                df[col]
+                .astype(str)
+                .str.replace(",", ".", regex=False)
+                .str.replace(" ", "", regex=False)
+                .replace("-", "0")
+            )
             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+     
         df["mese"] = df["Data e ora"].dt.to_period("M")
         agg = (df.groupby("mese")[["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]]
                  .sum().reset_index())
