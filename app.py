@@ -239,7 +239,7 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
     # Caption
     c.setFont("Helvetica", 9)
     c.setFillColor(colors.HexColor(TXT_BASE))
-    c.drawString(LM, table_y - 1.8*cm, "Nota: Valore atteso calcolato su provincia × potenza impianto.")
+    c.drawString(LM, table_y - 1.8*cm, "*Valore di produzione medio mensile atteso")
     c.setFont("Helvetica-Bold", 10)
     msg = {
         "verde": "Risultato buono: produzione del mese in linea alla media attesa.",
@@ -281,7 +281,10 @@ def send_pdf_via_email(pdf_bytes: bytes, filename: str, to_email: str):
     html_body = """
     <html>
       <body style="font-family:Arial,sans-serif; color:#222;">
-        <p>In allegato il report mensile in PDF.</p>
+        <p>Gentile cliente;
+trasmettiamo in allegato il report mensile del suo impianto fotovoltaico contenente i dati che abbiamo registrato. Può contattare il nostro servizio tecnico per approfondimenti e informazioni in merito.
+ 
+Cordiali saluti.</p>
         <hr style="border:0; border-top:1px solid #ccc; margin:20px 0;" />
         <img src="https://chellienergysolutions.it/wp-content/uploads/2025/09/logo-per-mail-form.jpg"
              alt="Logo Chelli Energy Solution"
