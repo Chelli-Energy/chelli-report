@@ -246,7 +246,7 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
     """Crea PDF A4 completo."""
     c = canvas.Canvas(path_out, pagesize=A4)
     page_w, page_h = A4
-    LM, RM, TM, BM = 2*cm, 2*cm, 2*cm, 2*cm
+    LM, RM, TM, BM = 1.0*cm, 1.0*cm, 2*cm, 2*cm  # più larghezza utile
 
     # Logo
     logo_w = 7*cm; logo_h = 2.3*cm
@@ -268,15 +268,18 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
         y -= 0.42*cm
 
     # Grafico
-    chart_w = page_w - LM - RM; chart_h = 7.0*cm
+    chart_w = page_w - LM - RM; chart_h = 11.0*cm
     chart_y = y - 0.7*cm - chart_h
     c.drawImage(chart_img, LM, chart_y, width=chart_w, height=chart_h, preserveAspectRatio=True, mask='auto')
 
     # Tabella
     table_y = chart_y - 2.6*cm - 5.2*cm
-    hdr = ["Mese","Produzione\nkWh","Consumo\nkWh","Autoconsumo\nkWh","Rete\nimmessa\nkWh","Rete\nprelevata\nkWh","Atteso\nkWh","Scost.\n%"]
+    hdr = ["Mese","Produzione kWh","Consumo kWh","Autoconsumo kWh","Rete immessa kWh","Rete prelevata kWh","Atteso kWh","Scost. %"]
     data_table = [hdr] + table_rows
-    col_widths = [1.6*cm, 1.8*cm, 1.8*cm, 2.0*cm, 1.8*cm, 2.0*cm, 1.8*cm, 1.6*cm]
+    content_w = page_w - LM - RM
+    fractions = [0.11, 0.14, 0.14, 0.15, 0.15, 0.15, 0.09, 0.07]  # somma = 1.0
+    col_widths = [f * content_w for f in fractions]
+
     tbl = Table(data_table, colWidths=col_widths)
     ts = TableStyle([
         ('FONT', (0,0), (-1,0), 'Helvetica-Bold', 6.5),
