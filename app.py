@@ -169,21 +169,21 @@ def atteso_for_last_month(prov_sigla: str, potenza_kw: float, last_mm: str, coef
     coeff = float(row.iloc[0][mese_col])  # kWh per kW
     return coeff * float(potenza_kw or 0.0)
 
-    # DEBUG: verifica coefficiente usato (prima del derating)
-    try:
-        mese_col = MESE_COL.get(last_mm)
-        coeff_series = coeff_df.loc[coeff_df["provincia"] == prov_sigla, mese_col]
-        coeff_val = float(coeff_series.iloc[0]) if not coeff_series.empty else 0.0
-    except Exception:
-        coeff_val = 0.0
-    
-    st.write({
-        "debug_coeff": coeff_val,                 # atteso kWh per kW del mese
-        "prov": prov_sigla,
-        "mese": MESE_COL.get(last_mm),
-        "kW": potenza_sel,
-        "atteso_pre_derating": round(atteso_last, 2)
-    })
+# DEBUG: verifica coefficiente usato (prima del derating)
+try:
+    mese_col = MESE_COL.get(last_mm)
+    coeff_series = coeff_df.loc[coeff_df["provincia"] == prov_sigla, mese_col]
+    coeff_val = float(coeff_series.iloc[0]) if not coeff_series.empty else 0.0
+except Exception:
+    coeff_val = 0.0
+
+st.write({
+    "debug_coeff": coeff_val,                 # atteso kWh per kW del mese
+    "prov": prov_sigla,
+    "mese": MESE_COL.get(last_mm),
+    "kW": potenza_sel,
+    "atteso_pre_derating": round(atteso_last, 2)
+})
 
 # -------------------------
 # 2bis) Helper grafico e PDF
