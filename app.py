@@ -278,7 +278,53 @@ def send_pdf_via_email(pdf_bytes: bytes, filename: str, to_email: str):
     msg["Cc"] = ""
     msg["Reply-To"] = "assistenza@chellienergysolutions.it"
     msg["Subject"] = subject_for_last_month()
-    msg.set_content("In allegato il report mensile in PDF.")
+    html_body = """
+    <html>
+      <body style="font-family:Arial,sans-serif; color:#222;">
+        <p>In allegato il report mensile in PDF.</p>
+        <hr style="border:0; border-top:1px solid #ccc; margin:20px 0;" />
+        <img src="https://www.chellienergysolutions.it/wp-content/uploads/logo.png"
+             alt="Logo Chelli Energy Solution"
+             width="140"
+             style="display:block; margin-bottom:10px;">
+
+        <p style="font-size:16px; font-weight:bold; margin:0;">
+          Chelli Energy Solution
+        </p>
+        <p style="font-size:14px; margin:2px 0;">
+          via Lisbona, 37<br>
+          50065 Pontassieve (FI) Italy<br>
+          <a href="https://www.chellienergysolutions.it" style="color:#1155cc; text-decoration:none;">
+            www.chellienergysolutions.it
+          </a>
+        </p>
+    
+        <p style="font-size:14px; font-weight:bold; margin:12px 0 0 0;">
+          Assistenza tecnica
+        </p>
+        <p style="font-size:14px; margin:2px 0;">
+          Mobile: +39 347 399 9592<br>
+          Tel: 055 8323264
+        </p>
+    
+        <p style="font-size:6px; color:#666; margin-top:18px; line-height:1.3;">
+          Questo documento è formato esclusivamente per il destinatario. Tutte le informazioni ivi contenute,
+          compresi eventuali allegati, sono da ritenere esclusivamente confidenziali e riservate secondo i termini
+          del vigente D.Lgs. 196/2003 in materia di privacy e del Regolamento europeo 679/2016 – GDPR – e quindi ne
+          è proibita l’utilizzazione ulteriore non autorizzata. Se avete ricevuto per errore questo messaggio,
+          Vi preghiamo cortesemente di contattare immediatamente il mittente e cancellare la e-mail. Grazie.<br><br>
+          Confidentiality Notice – This e-mail message including any attachments is for the sole use of the intended
+          recipient and may contain confidential and privileged information pursuant to Legislative Decree 196/2003
+          and the European General Data Protection Regulation 679/2016 – GDPR –. Any unauthorized review, use,
+          disclosure or distribution is prohibited. If you are not the intended recipient, please contact the sender
+          by reply e-mail and destroy all copies of the original message.
+        </p>
+      </body>
+    </html>
+    """
+
+    msg.set_content("In allegato il report mensile in PDF.")  # fallback testo
+    msg.add_alternative(html_body, subtype="html")
     msg.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename=filename)
 
     context = ssl.create_default_context()
