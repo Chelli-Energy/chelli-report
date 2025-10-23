@@ -283,7 +283,7 @@ def send_pdf_via_email(pdf_bytes: bytes, filename: str, to_email: str):
       <body style="font-family:Arial,sans-serif; color:#222;">
         <p>In allegato il report mensile in PDF.</p>
         <hr style="border:0; border-top:1px solid #ccc; margin:20px 0;" />
-        <img src="https://www.chellienergysolutions.it/wp-content/uploads/logo.png"
+        <img src="https://chellienergysolutions.it/wp-content/uploads/2025/09/logo-per-mail-form.jpg"
              alt="Logo Chelli Energy Solution"
              width="140"
              style="display:block; margin-bottom:10px;">
