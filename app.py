@@ -152,9 +152,9 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     widths = np.array([0.5]*len(month_labels))
     colors_bars = [GRAY_PRIOR]*len(month_labels)
     w, h = fig.get_size_inches()
-    fig.set_size_inches(w * 1.70, h * 1.50)
-    base = plt.rcParams.get("font.size", 5)
-    bump = base + 1
+    fig.set_size_inches(w * 1.99, h * 1.77)
+    base = plt.rcParams.get("font.size", 10)
+    bump = base + 3
     ax.tick_params(labelsize=bump)
     ax.xaxis.label.set_fontsize(bump)
     ax.yaxis.label.set_fontsize(bump)
