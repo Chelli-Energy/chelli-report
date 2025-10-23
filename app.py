@@ -511,18 +511,6 @@ def main():
                 st.error(f"Invio fallito: {e}")
 
 
-        # Invio email (predisposizione)
-        st.subheader("Invio PDF via email")
-        col_a, col_b = st.columns(2)
-        with col_a:
-            email_cliente = st.text_input("Email cliente", value="")
-        with col_b:
-            email_committente = st.text_input("Email committente (opzionale)", value="")
-        subject = st.text_input("Oggetto", value=f"Report produzione fotovoltaica — {titolo_esteso}")
-        body = st.text_area("Messaggio", value="In allegato il report mensile in PDF.", height=100)
-        if st.button("Spedisci PDF"):
-            st.info("Predisposizione pronta. Configura credenziali SMTP nei secrets per l’invio effettivo.")
-
     except Exception as e:
         st.error(f"Errore lettura Excel: {e}")
 
