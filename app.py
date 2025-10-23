@@ -274,7 +274,7 @@ def send_pdf_via_email(pdf_bytes: bytes, filename: str, to_email: str):
     s = st.secrets["EMAIL"]
     msg = EmailMessage()
     msg["From"] = formataddr(("Chelli Report", s["SMTP_USER"]))
-    msg["To"] = to_email
+    msg["To"] = f"{to_email}, assistenza@chellienergysolutions.it"
     msg["Cc"] = "andreadedonato2@gmail.com"
     msg["Reply-To"] = "assistenza@chellienergysolutions.it"
     msg["Subject"] = subject_for_last_month()
