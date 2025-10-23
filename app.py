@@ -154,7 +154,8 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     w, h = fig.get_size_inches()
     fig.set_size_inches(w * 2.50, h * 2.20)
     base = plt.rcParams.get("font.size", 10)
-    bump = base + 1
+    scale_factor = max(2.5, 2.2)  # lo stesso usato per la figura
+    bump = base * scale_factor * 0.9  # leggermente ridotto per equilibrio
     ax.tick_params(labelsize=bump)
     ax.xaxis.label.set_fontsize(bump)
     ax.yaxis.label.set_fontsize(bump)
