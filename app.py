@@ -181,7 +181,7 @@ def atteso_for_last_month(prov_sigla: str, potenza_kw: float, last_mm: str, coef
     except Exception:
         coeff_val = 0.0
     
-    st.write({
+    # st.write({
         "debug_coeff": coeff_val,                 # atteso kWh per kW del mese
         "prov": prov_sigla,
         "mese": MESE_COL.get(last_mm),
