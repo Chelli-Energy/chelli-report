@@ -531,7 +531,7 @@ def main():
             }
             denom_safe = str(row.get("denominazione","")).replace(" ", "")
         else:
-            anag_dict = {"Denominazione":"","Indirizzo":"","Provincia":"","Potenza (kWh)":"","Derating (%)":"","Data installazione":""}
+            anag_dict = {"Denominazione":"","Indirizzo":"","Provincia":"","Potenza (kWh)":"","Data installazione":""}
             denom_safe = "Cliente"
 
         # Titolo PDF
