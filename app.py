@@ -527,7 +527,6 @@ def main():
                 "Indirizzo": str(row.get("indirizzo","")),
                 "Provincia": str(row.get("provincia","")),
                 "Potenza (kWh)": str(row.get("potenza_kw","")),
-                "Derating (%)": str(row.get("derating_percent", 0)),
                 "Data installazione": str(row.get("data_installazione","")),
             }
             denom_safe = str(row.get("denominazione","")).replace(" ", "")
