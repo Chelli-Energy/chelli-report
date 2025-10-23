@@ -242,9 +242,9 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
     c.drawString(LM, table_y - 1.8*cm, "Nota: Valore atteso calcolato su provincia × potenza impianto.")
     c.setFont("Helvetica-Bold", 10)
     msg = {
-        "verde": "Risultato eccellente: produzione del mese in linea o superiore alla media attesa.",
-        "arancione": "Risultato buono: produzione del mese leggermente sotto la media attesa.",
-        "rosso": "Risultato inferiore agli standard: produzione del mese sensibilmente sotto la media attesa.",
+        "verde": "Risultato buono: produzione del mese in linea alla media attesa.",
+        "arancione": "Risultato inferiore agli standard: produzione del mese leggermente sotto la media attesa.",
+        "rosso": "Risultato non sufficente: produzione del mese sensibilmente sotto la media attesa.",
     }[last_class]
     c.drawString(LM, table_y - 2.6*cm, msg)
 
