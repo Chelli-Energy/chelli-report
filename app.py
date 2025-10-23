@@ -152,7 +152,25 @@ def build_monthly_chart(month_labels, prod_values, atteso_last=None, last_ok_cla
     widths = np.array([0.5]*len(month_labels))
     colors_bars = [GRAY_PRIOR]*len(month_labels)
     w, h = fig.get_size_inches()
-    fig.set_size_inches(w * 1.30, h * 1.20)
+    fig.set_size_inches(w * 1.40, h * 1.30)
+    base = plt.rcParams.get("font.size", 10)
+    bump = base + 1
+    ax.tick_params(labelsize=bump)
+    ax.xaxis.label.set_fontsize(bump)
+    ax.yaxis.label.set_fontsize(bump)
+    if ax.title: ax.title.set_fontsize(bump)
+    # Se usi legende:
+    leg = ax.get_legend()
+    if leg: 
+        for t in leg.get_texts():
+            t.set_fontsize(bump)
+    # Se usi etichette sulle barre (bar_label):
+    try:
+        for c in ax.containers:
+            ax.bar_label(c, fontsize=bump)
+    except Exception:
+        pass
+
 
 
     last_color = GREEN_MAIN if last_ok_class=="verde" else (ORANGE if last_ok_class=="arancione" else RED)
