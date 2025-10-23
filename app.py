@@ -268,11 +268,11 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
         y -= 0.42*cm
 
     # Grafico
-    chart_w = page_w - LM - RM; chart_h = 11.0*cm
+    chart_w = page_w - LM - RM; chart_h = 9.0*cm
     chart_y = y - 0.7*cm - chart_h
     c.drawImage(chart_img, LM, chart_y, width=chart_w, height=chart_h, preserveAspectRatio=True, mask='auto')
 
-    # Tabella
+    # Tabella + Caption con posizionamento sicuro
     hdr = ["Mese","Produzione kWh","Consumo kWh","Autoconsumo kWh","Rete immessa kWh","Rete prelevata kWh","Atteso kWh","Scost. %"]
     data_table = [hdr] + table_rows
     
@@ -282,9 +282,9 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
     
     tbl = Table(data_table, colWidths=col_widths)
     ts = TableStyle([
-        ('FONT', (0,0), (-1,0), 'Helvetica-Bold', 7.5),
+        ('FONT', (0,0), (-1,0), 'Helvetica-Bold', 8),
         ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor(TXT_DARK)),
-        ('FONT', (0,1), (-1,-1), 'Helvetica', 7.5),
+        ('FONT', (0,1), (-1,-1), 'Helvetica', 8),
         ('ALIGN', (1,1), (-1,-1), 'RIGHT'),
         ('ALIGN', (0,0), (0,-1), 'LEFT'),
         ('LINEBELOW', (0,0), (-1,0), 0.5, colors.HexColor(GRID)),
@@ -296,42 +296,31 @@ def compose_pdf(path_out, logo_path, title_mmYYYY, anag_dict, table_rows, last_c
     ts.add('BACKGROUND', (0, len(data_table)-1), (-1, len(data_table)-1), colors.HexColor(hl))
     tbl.setStyle(ts)
     
-    # calcola altezza tabella e posiziona sopra al margine basso
+    # misura tabella e posiziona sopra al margine
     w, h = tbl.wrapOn(c, content_w, page_h)
-    table_y = max(BM + 2.0*cm, chart_y - 1.0*cm - h)
+    table_y = max(BM + 2.2*cm, chart_y - 0.8*cm - h)
     tbl.drawOn(c, (page_w - w)/2, table_y)
     
-    # Caption subito sotto la tabella, con guardia sul margine
-    cap1_y = table_y - 0.9*cm
-    cap2_y = table_y - 1.7*cm
-    min_y = BM + 0.7*cm
+    # caption sotto tabella con guardia
+    cap1_y = table_y - 1.0*cm
+    cap2_y = table_y - 1.8*cm
+    min_y  = BM + 0.9*cm
     if cap2_y < min_y:
-        delta = (min_y - cap2_y)
-        table_y += delta; cap1_y += delta; cap2_y += delta
+        shift = (min_y - cap2_y)
+        table_y += shift; cap1_y += shift; cap2_y += shift
     
     c.setFont("Helvetica", 9)
     c.setFillColor(colors.HexColor(TXT_BASE))
     c.drawString(LM, cap1_y, "*Valore di produzione medio mensile atteso")
+    
     c.setFont("Helvetica-Bold", 10)
     msg = {
         "verde": "Risultato buono: produzione del mese in linea alla media attesa.",
         "arancione": "Risultato inferiore agli standard: produzione del mese leggermente sotto la media attesa.",
-        "rosso": "Risultato non sufficente: produzione del mese sensibilmente sotto la media attesa.",
+        "rosso": "Risultato non sufficiente: produzione del mese sensibilmente sotto la media attesa.",
     }[last_class]
     c.drawString(LM, cap2_y, msg)
 
-
-    # Caption
-    c.setFont("Helvetica", 9)
-    c.setFillColor(colors.HexColor(TXT_BASE))
-    c.drawString(LM, table_y - 1.8*cm, "*Valore di produzione medio mensile atteso")
-    c.setFont("Helvetica-Bold", 10)
-    msg = {
-        "verde": "Risultato buono: produzione del mese in linea alla media attesa.",
-        "arancione": "Risultato inferiore agli standard: produzione del mese leggermente sotto la media attesa.",
-        "rosso": "Risultato non sufficente: produzione del mese sensibilmente sotto la media attesa.",
-    }[last_class]
-    c.drawString(LM, table_y - 2.6*cm, msg)
 
     # Footer
     c.setFont("Helvetica", 9)
