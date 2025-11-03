@@ -498,7 +498,7 @@ def main():
     # --- Aggiungi nuovo cliente ---
     st.divider()
     st.subheader("Aggiungi nuovo cliente")
-    with st.form("nuovo_cliente"):
+    with st.form(key="form_nuovo_cliente_v2"):
         c1, c2 = st.columns(2)
         with c1:
             denominazione = st.text_input("Denominazione*", "")
@@ -509,7 +509,7 @@ def main():
             potenza_kw = st.number_input("Potenza (kW)*", min_value=0.1, step=0.1, value=5.0)
             data_installazione = st.date_input("Data installazione*", value=date.today())
             derating_percent = st.number_input("Derating impianto (%)", min_value=0, max_value=99, value=0, step=1)
-        submitted = st.form_submit_button("Aggiungi all’elenco")
+        submitted = st.form_submit_button("Aggiungi all’elenco", key="submit_nuovo_cliente_v2")
         if submitted:
             if not denominazione or not indirizzo or not provincia or not email:
                 st.error("Compila i campi obbligatori contrassegnati con *")
