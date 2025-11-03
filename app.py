@@ -478,7 +478,7 @@ def main():
         denoms = ["-- Seleziona cliente --"] + sorted(
             [d for d in anag["denominazione"].dropna().astype(str).unique() if d.strip()]
         )
-        selected = st.selectbox("Seleziona cliente", options=denoms, index=0, label_visibility="collapsed")
+        selected = st.selectbox("Seleziona cliente", options=denoms, index=0, label_visibility="collapsed", key="sel_cliente")
         if selected == "-- Seleziona cliente --":
             st.info("Seleziona dall’elenco o aggiungi un nuovo cliente per procedere.")
             selected = None
