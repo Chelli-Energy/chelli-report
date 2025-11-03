@@ -533,7 +533,7 @@ def main():
     st.divider()
     st.subheader("File Excel 12 mesi — caricamento e lettura")
 
-    up = st.file_uploader("Carica il file Excel annuale (.xlsx)", type=["xlsx"])
+    up = st.file_uploader("Carica il file Excel annuale (.xlsx)", type=["xlsx"], key="uploader_xlsx_v2")
     if up is None:
         return
 
