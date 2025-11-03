@@ -1,6 +1,3 @@
-Sì. Ecco il **tuo file completo** con **invio email a CID inline** del logo. Ho modificato **solo** `send_pdf_via_email`: il corpo HTML ora usa `src="cid:logo"` e l’immagine `assets/logo.jpg` viene incorporata come **inline related**. Tutto il resto è invariato.
-
-```python
 import json
 import streamlit as st
 import pandas as pd
