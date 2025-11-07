@@ -1,4 +1,5 @@
 import json
+import re
 import streamlit as st
 import pandas as pd
 from io import BytesIO
@@ -44,6 +45,23 @@ def check_password():
 ANAGRAFICA_PATH = "schema/anagrafica.csv"
 ANAG_COLS = ["denominazione","indirizzo","provincia","potenza_kw","data_installazione","derating_percent","email"]
 
+def parse_decimal(x) -> float:
+    """Gestisce '5,5', '5.5', '1.234,56', '1 234,56', '1234.56' -> float."""
+    s = str(x).strip()
+    if s in ("", "nan", "None", "-", "NULL"):
+        return 0.0
+    s = s.replace("\u00A0", "").replace(" ", "")
+    if "," in s and "." in s:
+        # punti come migliaia, virgola come decimale
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s:
+        s = s.replace(",", ".")
+    s = re.sub(r"[^\d\.\-]", "", s)
+    try:
+        return float(s)
+    except Exception:
+        return 0.0
+
 def gs_client():
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
     info_raw = st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"]
@@ -72,7 +90,7 @@ def df_append_row(ws, row_dict):
     ws.append_row(values)
 
 def load_anagrafica_gs():
-    """Legge il foglio 'anagrafica' e normalizza la provincia a sigla + derating."""
+    """Legge il foglio 'anagrafica' e normalizza provincia, derating e potenza_kw."""
     try:
         sh = gs_client(); ws = sh.worksheet("anagrafica")
         df = sheet_to_df(ws)
@@ -82,8 +100,12 @@ def load_anagrafica_gs():
             df["provincia"].astype(str).str.strip().str.upper()
               .map(lambda x: PROVINCE_MAP.get(x, x))
         )
-        if "derating_percent" not in df.columns: df["derating_percent"] = ""
-        df["derating_percent"] = pd.to_numeric(df["derating_percent"], errors="coerce").clip(0,99).fillna(0).astype(int)
+        df["derating_percent"] = pd.to_numeric(df.get("derating_percent", 0), errors="coerce")\
+                                     .clip(0,99).fillna(0).astype(int)
+        # normalizza potenza con virgole/punti
+        df["potenza_kw"] = df["potenza_kw"].apply(parse_decimal).astype(float)
+        # lascia la data come stringa visibile
+        df["data_installazione"] = df["data_installazione"].astype(str)
         return df[ANAG_COLS]
     except Exception as e:
         st.error(f"Errore lettura anagrafica (GS): {e}")
@@ -351,11 +373,9 @@ def send_pdf_via_email(pdf_bytes: bytes, filename: str, to_email: str):
     try:
         with open("assets/logo.jpg", "rb") as f:
             img_bytes = f.read()
-        # aggiunge come parte "related" all'ultima alternativa (HTML)
         msg.get_payload()[-1].add_related(img_bytes, maintype="image", subtype="jpeg",
                                           cid="<logo>", filename="logo.jpg")
     except FileNotFoundError:
-        # se il logo non esiste, proseguo senza bloccare l'invio
         pass
 
     # Allego il PDF
@@ -400,7 +420,8 @@ def main():
                 st.markdown(f"**Provincia:** {row.get('provincia','')}")
                 st.markdown(f"**Email:** {row.get('email','')}")
             with c2:
-                st.markdown(f"**Potenza (kW):** {row.get('potenza_kw','')}")
+                potenza_fmt = f"{parse_decimal(row.get('potenza_kw','')):.1f}"
+                st.markdown(f"**Potenza (kW):** {potenza_fmt}")
                 st.markdown(f"**Data installazione:** {row.get('data_installazione','')}")
                 st.markdown(f"**Derating (%):** {row.get('derating_percent', 0)}")
 
@@ -474,8 +495,6 @@ def main():
         df["Rete_prelevata_kWh"] = df.get("Energia prelevata", 0) / 1000.0
 
         # Aggregazione mensile
-        import re
-        
         def _to_num(x):
             s = str(x).strip().replace("−", "-")
             if s in ("", "-", "nan", "None", "NULL"): 
@@ -535,7 +554,7 @@ def main():
         if selected and last_mm:
             row_sel = st.session_state.anag_df[st.session_state.anag_df["denominazione"] == selected].iloc[0]
             prov_sigla = str(row_sel.get("provincia","")).strip().upper()
-            potenza_sel = float(row_sel.get("potenza_kw", 0) or 0)
+            potenza_sel = parse_decimal(row_sel.get("potenza_kw", 0) or 0)
             if prov_sigla and potenza_sel > 0:
                 coeff_df = load_coeff_gs()
                 atteso_last = atteso_for_last_month(prov_sigla, potenza_sel, last_mm, coeff_df)
@@ -584,7 +603,7 @@ def main():
                 "Denominazione": str(row.get("denominazione","")),
                 "Indirizzo": str(row.get("indirizzo","")),
                 "Provincia": str(row.get("provincia","")),
-                "Potenza (kWp)": str(row.get("potenza_kw","")),
+                "Potenza (kWp)": f"{parse_decimal(row.get('potenza_kw','')):.1f}",
                 "Data installazione": str(row.get("data_installazione","")),
             }
             denom_safe = str(row.get("denominazione","")).replace(" ", "")
