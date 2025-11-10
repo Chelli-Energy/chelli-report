@@ -492,7 +492,7 @@ def main():
         df["Consumo_kWh"]        = df.get("Consumo totale", 0) / 1000.0
         df["Autoconsumo_kWh"]    = df.get("Autoconsumo", 0) / 1000.0
         df["Rete_immessa_kWh"]   = df.get("Energia alimentata nella rete", 0) / 1000.0
-        df["Rete_prelevata_kWh"] = df.get("Energia prelevata", 0) / 1000.0
+        df["Rete_prelevata_kWh"] = (df.get("Energia prelevata dalla rete", df.get("Energia prelevata", 0)) / 1000.0)
 
         # Aggregazione mensile
         def _to_num(x):
