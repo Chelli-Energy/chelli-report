@@ -517,8 +517,8 @@ def main():
                         return s.astype(float)
             return pd.Series(0.0, index=df.index)
         
-        df["Rete_prelevata_kWh"] = _pick_col(["Energia prelevata dalla rete","Energia prelevata","Rete_prelevata_kWh"])
-        df["Rete_immessa_kWh"]   = _pick_col(["Energia alimentata nella rete","Rete_immessa_kWh"])
+        df["Rete_prelevata_kWh"] = (df.get("Energia prelevata", df.get("Energia prelevata dalla rete", 0)) / 1000.0)
+        df["Rete_immessa_kWh"] = (df.get("Energia alimentata nella rete", 0) / 1000.0)
 
         agg = (
             df.groupby("mese")[["Produzione_kWh","Consumo_kWh","Autoconsumo_kWh","Rete_immessa_kWh","Rete_prelevata_kWh"]]
